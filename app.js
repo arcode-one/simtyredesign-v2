@@ -33,6 +33,7 @@ const state = {
   memberActionMenu: false,
   permissionAddMenu: false,
   customPermissionRole: false,
+  mobileSettingsView: false,
   modal: null,
   modalParent: null,
 };
@@ -104,7 +105,7 @@ function renderSidebar() {
 
 function renderHeader() {
   const head = $("#mainHead");
-  const mobile = `<button class="icon-button mobile-menu-button" data-action="mobile-menu" aria-label="Открыть меню">${icon("menu")}</button>`;
+  const mobile = `<button class="icon-button mobile-back-button" data-action="mobile-back" aria-label="Назад">${icon("arrow-left")}</button>`;
 
   if (state.view === "friends") {
     head.innerHTML = `<div class="head-start">${mobile}${icon("users")}<strong>Друзья</strong></div><div class="head-end"></div>`;
@@ -197,7 +198,8 @@ function renderComposer() {
   composer.classList.toggle("hidden", !show);
   if (!show) return;
   const input = $("#messageInput");
-  input.placeholder = state.view === "channel" ? "Написать сообщение в #Основной" : "Написать сообщение...";
+  const compact = window.matchMedia("(max-width: 900px)").matches;
+  input.placeholder = state.view === "channel" && !compact ? "Написать сообщение в #Основной" : "Написать сообщение...";
 }
 
 function renderDrawer() {
@@ -211,6 +213,7 @@ function renderDrawer() {
 }
 
 function renderApp() {
+  $("#app").classList.toggle("mobile-content", state.view !== "landing");
   $$("[data-space]").forEach((button) => button.classList.toggle("active", button.dataset.space === state.space));
   renderSidebar();
   renderHeader();
@@ -221,7 +224,8 @@ function renderApp() {
 }
 
 function modalShell(title, subtitle, content, footer = "", wide = false) {
-  return `<section class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${title}"><header class="modal-head"><div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ""}</div><button class="icon-button" data-modal-close aria-label="Закрыть">${icon("close")}</button></header>${content}${footer}</section>`;
+  const mobileBack = wide && state.mobileSettingsView ? `<button class="icon-button mobile-settings-header-back" data-action="mobile-settings-back" aria-label="Назад к разделам">${icon("arrow-left")}</button>` : "";
+  return `<section class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${title}"><header class="modal-head">${mobileBack}<div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ""}</div><button class="icon-button" data-modal-close aria-label="Закрыть">${icon("close")}</button></header>${content}${footer}</section>`;
 }
 
 const permissionGroups = [
@@ -270,8 +274,9 @@ function renderUserSettings() {
     ["voice", "mic", "Голос и видео"],
     ["devices", "monitor", "Устройства"],
   ];
+  const activeTitle = tabs.find(([id]) => id === state.userSettingsTab)?.[2] || "Профиль";
   const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.userSettingsTab === id ? "active" : ""}" data-user-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="logout">${icon("close")}Выйти</button></nav>`;
-  return modalShell("Настройки пользователя", "Профиль, голос и активные устройства.", `<div class="settings-shell">${nav}<section class="settings-view" id="settingsView">${renderUserSettingsView()}</section></div>`, "", true);
+  return modalShell(state.mobileSettingsView ? activeTitle : "Настройки пользователя", state.mobileSettingsView ? "" : "Профиль, голос и активные устройства.", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view" id="settingsView">${renderUserSettingsView()}</section></div>`, "", true);
 }
 
 function renderUserSettingsView() {
@@ -290,8 +295,9 @@ function renderServerSettings() {
   const tabs = [
     ["profile", "users", "Профиль сервера"], ["privacy", "shield", "Приватность"], ["roles", "role", "Роли"], ["members", "users", "Участники"], ["invites", "link", "Приглашения"], ["applications", "user-check", "Заявки"], ["audit", "list", "Журнал аудита"],
   ];
+  const activeTitle = tabs.find(([id]) => id === state.serverSettingsTab)?.[2] || "Профиль сервера";
   const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.serverSettingsTab === id ? "active" : ""}" data-server-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="delete-server">${icon("trash")}Удалить сервер</button></nav>`;
-  return modalShell("Настройки сервера", "Управление сервером «Simty Upgrade».", `<div class="settings-shell">${nav}<section class="settings-view ${state.serverSettingsTab === "roles" ? "roles-settings-view" : ""}">${renderServerSettingsView()}</section></div>`, "", true);
+  return modalShell(state.mobileSettingsView ? activeTitle : "Настройки сервера", state.mobileSettingsView ? "" : "Управление сервером «Simty Upgrade».", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view ${state.serverSettingsTab === "roles" ? "roles-settings-view" : ""}">${renderServerSettingsView()}</section></div>`, "", true);
 }
 
 function renderRoleManager() {
@@ -307,7 +313,7 @@ function renderRoleManager() {
   if (state.roleTab === "permissions") {
     content = `<div class="role-pane role-permission-pane"><div class="role-pane-title"><h3>Права роли</h3><p>Настройте возможности участников с ролью ${escapeHTML(roleName)}.</p></div>${renderPermissionMatrix("role")}</div>`;
   } else if (state.roleTab === "members") {
-    content = `<div class="role-pane role-members-pane"><div class="role-members-title"><h3>Участники (${state.roleMemberAdded ? 1 : 0})</h3></div>${state.roleMemberPicker ? `<div class="role-member-picker"><input class="input" placeholder="Поиск участников..." autofocus /><button class="role-member-candidate" data-action="assign-role-member"><span class="avatar">A<span class="online"></span></span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span>${icon("plus")}</button></div>` : `<button class="role-add-member" data-action="role-member-picker">${icon("plus")}Добавить участника</button>`}${state.roleMemberAdded ? `<div class="role-member-assigned"><span class="avatar">A<span class="online"></span></span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span><button class="icon-button" data-action="remove-role-member" aria-label="Убрать участника из роли">${icon("close")}</button></div>` : `<div class="role-member-empty"><span>${icon("users")}</span><strong>Нет участников</strong><small>Добавьте участника, чтобы назначить ему эту роль.</small></div>`}</div>`;
+    content = `<div class="role-pane role-members-pane"><div class="role-members-title"><h3>Участники (${state.roleMemberAdded ? 1 : 0})</h3></div>${state.roleMemberPicker ? `<div class="role-member-picker"><input class="input" placeholder="Поиск участников..." autofocus /><button class="role-member-candidate" data-action="assign-role-member"><span class="avatar">A</span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span>${icon("plus")}</button></div>` : `<button class="role-add-member" data-action="role-member-picker">${icon("plus")}Добавить участника</button>`}${state.roleMemberAdded ? `<div class="role-member-assigned"><span class="avatar">A</span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span><button class="icon-button" data-action="remove-role-member" aria-label="Убрать участника из роли">${icon("close")}</button></div>` : `<div class="role-member-empty"><span>${icon("users")}</span><strong>Нет участников</strong><small>Добавьте участника, чтобы назначить ему эту роль.</small></div>`}</div>`;
   } else {
     content = `<div class="role-pane role-general-pane"><div class="field"><label for="roleNameInput">Название</label><input class="input" id="roleNameInput" value="${escapeHTML(roleName)}" /></div>${state.selectedRole !== "everyone" ? `<button class="role-delete-button" data-confirm="delete-role">${icon("trash")}Удалить роль</button>` : ""}</div>`;
   }
@@ -318,7 +324,7 @@ function renderRoleManager() {
 function renderServerSettingsView() {
   if (state.serverSettingsTab === "privacy") return `<h1>Приватность сервера</h1><div class="settings-card"><h2>Настройки доступа</h2><div class="privacy-options"><button class="choice selected" data-choice>${icon("lock")}<span><strong>Приватный</strong><small>Доступ только по приглашению</small></span></button><button class="choice" data-choice>${icon("user-check")}<span><strong>По заявке</strong><small>Вход по одобрению заявки</small></span></button><button class="choice" data-choice>${icon("globe")}<span><strong>Публичный</strong><small>Любой может присоединиться</small></span></button></div><div class="settings-actions"><button class="ghost">Сбросить</button><button class="primary">Сохранить изменения</button></div></div>`;
   if (state.serverSettingsTab === "roles") return renderRoleManager();
-  if (state.serverSettingsTab === "members") return `<div class="member-heading"><div><h1>Участники</h1><p class="hint">1 участник</p></div><button class="icon-button refresh-button" data-action="refresh-members" aria-label="Обновить участников">${icon("refresh")}</button></div><div class="member-list"><div class="member-entry"><span class="avatar">A<span class="online"></span></span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span><button class="member-actions-button" data-action="member-actions" aria-label="Действия с участником" aria-expanded="${state.memberActionMenu}">${icon("more")}</button>${state.memberActionMenu ? `<div class="member-actions-menu" role="menu"><button data-confirm="kick-member">${icon("user-minus")}<span>Исключить</span></button><button data-confirm="ban-member">${icon("ban")}<span>Заблокировать</span></button></div>` : ""}</div></div>`;
+  if (state.serverSettingsTab === "members") return `<div class="member-heading"><div><h1>Участники</h1><p class="hint">1 участник</p></div><button class="icon-button refresh-button" data-action="refresh-members" aria-label="Обновить участников">${icon("refresh")}</button></div><div class="member-list"><div class="member-entry"><span class="avatar">A</span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span><button class="member-actions-button" data-action="member-actions" aria-label="Действия с участником" aria-expanded="${state.memberActionMenu}">${icon("more")}</button>${state.memberActionMenu ? `<div class="member-actions-menu" role="menu"><button data-confirm="kick-member">${icon("user-minus")}<span>Исключить</span></button><button data-confirm="ban-member">${icon("ban")}<span>Заблокировать</span></button></div>` : ""}</div></div>`;
   if (state.serverSettingsTab === "invites") return `<div class="page-title"><h1>Приглашения</h1><p>Активные ссылки-приглашения сервера.</p></div><button class="primary" data-modal="invite">Создать</button><div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol">${icon("link")}</div><h2>Нет приглашений</h2><p>Создайте первое приглашение, чтобы пригласить друзей на этот сервер.</p></div></div>`;
   if (state.serverSettingsTab === "applications") {
     const filters = [["all", "Все"], ["pending", "Ожидают"], ["approved", "Одобрено"], ["rejected", "Отклонено"]];
@@ -344,7 +350,8 @@ function renderChannelSettings() {
   if (state.customPermissionRole) subjects.push(["new-role", "role", state.roleNames["new-role"] || "Новая роль", "Роль сервера"]);
   const selected = subjects.find(([id]) => id === state.selectedPermissionSubject) || subjects[0];
   const view = state.channelSettingsTab === "permissions" ? `<div class="channel-permissions"><aside class="permission-subjects"><div class="permission-add-wrap"><button class="primary add-subject" data-action="permission-add" aria-expanded="${state.permissionAddMenu}">${icon("plus")}Добавить</button>${state.permissionAddMenu ? `<div class="permission-add-menu" role="menu"><span>Роли</span><button data-action="add-new-role">${icon("role")}<strong>${escapeHTML(state.roleNames["new-role"] || "Новая роль")}</strong></button></div>` : ""}</div><div class="subject-list">${subjects.map(([id, iconName, label, caption]) => `<button class="subject-row ${state.selectedPermissionSubject === id ? "active" : ""}" data-permission-subject="${id}"><span class="row-icon">${icon(iconName)}</span><span><strong>${label}</strong><small>${caption}</small></span></button>`).join("")}</div></aside><section class="permission-detail"><div class="permission-detail-head"><div><span class="eyebrow">Разрешения</span><h1>${selected[2]}</h1><p>${selected[3]} · канал #Основной</p></div><span class="subject-badge">${icon(selected[1])}</span></div>${renderPermissionMatrix("channel")}<div class="sticky-actions"><button class="ghost" data-toast="Изменения разрешений сброшены">Сбросить</button><button class="primary" data-toast="Разрешения канала сохранены">${icon("check")}Сохранить</button></div></section></div>` : `<h1>Информация о канале</h1><form id="channelForm"><div class="settings-card"><div class="field"><label>Имя канала</label><input class="input" value="Основной" /></div><div class="field"><label>Описание</label><textarea class="textarea" placeholder="Введите описание канала"></textarea><p class="hint">Описание канала, которое видят участники.</p></div><div class="settings-actions"><button class="ghost" type="reset">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
-  return modalShell("Настройки канала", "Канал «Основной».", `<div class="settings-shell">${nav}<section class="settings-view ${state.channelSettingsTab === "permissions" ? "permission-settings-view" : ""}">${view}</section></div>`, "", true);
+  const activeTitle = tabs.find(([id]) => id === state.channelSettingsTab)?.[2] || "Информация";
+  return modalShell(state.mobileSettingsView ? activeTitle : "Настройки канала", state.mobileSettingsView ? "" : "Канал «Основной».", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view ${state.channelSettingsTab === "permissions" ? "permission-settings-view" : ""}">${view}</section></div>`, "", true);
 }
 
 function renderConfirm(type) {
@@ -386,8 +393,9 @@ function renderConfirm(type) {
 
 function renderModal() {
   const root = $("#modalRoot");
-  if (!state.modal) { root.classList.remove("open"); root.innerHTML = ""; return; }
+  if (!state.modal) { root.classList.remove("open", "confirm-open"); root.innerHTML = ""; return; }
   root.classList.add("open");
+  root.classList.toggle("confirm-open", state.modal.startsWith("confirm:"));
 
   if (state.modal === "new-chat") {
     root.innerHTML = modalShell("Начать беседу", "Создайте личную переписку с другом.", `<form id="newChatForm"><div class="modal-body"><div class="field"><label>Имя пользователя</label><input class="input" id="newChatName" placeholder="Введите имя пользователя вашего друга" autofocus /></div></div><footer class="modal-foot"><button class="ghost" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать ЛС</button></footer></form>`);
@@ -411,6 +419,7 @@ function openModal(name) {
   state.serverMenu = false;
   state.notificationMenu = false;
   state.notificationMuteMenu = false;
+  if (["user-settings", "server-settings", "channel-settings"].includes(name)) state.mobileSettingsView = false;
   if (state.modal && state.modal !== name) state.modalParent = state.modal;
   state.modal = name;
   renderSidebar();
@@ -433,6 +442,7 @@ function closeModal() {
     state.modalParent = null;
   } else {
     state.modal = null;
+    state.mobileSettingsView = false;
   }
   renderModal();
 }
@@ -556,6 +566,19 @@ document.addEventListener("click", (event) => {
   if (action === "info") { state.infoOpen = !state.infoOpen; renderDrawer(); return; }
   if (action === "info-close") { state.infoOpen = false; renderDrawer(); return; }
   if (action === "mobile-menu") { $("#app").classList.add("mobile-open"); return; }
+  if (action === "mobile-back") {
+    state.view = "landing";
+    state.infoOpen = false;
+    state.notificationMenu = false;
+    state.notificationMuteMenu = false;
+    renderApp();
+    return;
+  }
+  if (action === "mobile-settings-back") {
+    state.mobileSettingsView = false;
+    renderModal();
+    return;
+  }
   if (action === "stickers") { $("#stickerPopover").classList.toggle("open"); return; }
   if (action === "create-role") {
     state.roleCreated = true;
@@ -636,13 +659,13 @@ document.addEventListener("click", (event) => {
   if (friendTab) { state.friendsTab = friendTab.dataset.friendsTab; renderMain(); return; }
 
   const userTab = event.target.closest("[data-user-settings-tab]");
-  if (userTab) { state.userSettingsTab = userTab.dataset.userSettingsTab; renderModal(); return; }
+  if (userTab) { state.userSettingsTab = userTab.dataset.userSettingsTab; state.mobileSettingsView = window.matchMedia("(max-width: 767px)").matches; renderModal(); return; }
 
   const serverTab = event.target.closest("[data-server-settings-tab]");
-  if (serverTab) { state.serverSettingsTab = serverTab.dataset.serverSettingsTab; state.auditMenu = false; state.memberActionMenu = false; renderModal(); return; }
+  if (serverTab) { state.serverSettingsTab = serverTab.dataset.serverSettingsTab; state.auditMenu = false; state.memberActionMenu = false; state.mobileSettingsView = window.matchMedia("(max-width: 767px)").matches; renderModal(); return; }
 
   const channelTab = event.target.closest("[data-channel-settings-tab]");
-  if (channelTab) { state.channelSettingsTab = channelTab.dataset.channelSettingsTab; state.permissionAddMenu = false; renderModal(); return; }
+  if (channelTab) { state.channelSettingsTab = channelTab.dataset.channelSettingsTab; state.permissionAddMenu = false; state.mobileSettingsView = window.matchMedia("(max-width: 767px)").matches; renderModal(); return; }
 
   const roleTab = event.target.closest("[data-role-tab]");
   if (roleTab) { state.roleTab = roleTab.dataset.roleTab; state.roleMemberPicker = false; renderModal(); return; }
@@ -808,5 +831,7 @@ document.addEventListener("keydown", (event) => {
     $("#composer").requestSubmit();
   }
 });
+
+window.addEventListener("resize", renderComposer);
 
 renderApp();
