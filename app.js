@@ -275,7 +275,7 @@ function renderUserSettings() {
     ["devices", "monitor", "Устройства"],
   ];
   const activeTitle = tabs.find(([id]) => id === state.userSettingsTab)?.[2] || "Профиль";
-  const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.userSettingsTab === id ? "active" : ""}" data-user-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="logout">${icon("close")}Выйти</button></nav>`;
+  const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.userSettingsTab === id ? "active" : ""}" data-user-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="logout">${icon("log-out")}Выйти</button></nav>`;
   return modalShell(state.mobileSettingsView ? activeTitle : "Настройки пользователя", state.mobileSettingsView ? "" : "Профиль, голос и активные устройства.", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view" id="settingsView">${renderUserSettingsView()}</section></div>`, "", true);
 }
 
