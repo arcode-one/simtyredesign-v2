@@ -650,21 +650,22 @@ svg {
   border-radius: 8px;
   font-weight: 650;
   cursor: pointer;
-  transition: background var(--ease), box-shadow var(--ease);
+  transition: color var(--ease), background var(--ease), box-shadow var(--ease);
 }
 
 .primary { color: #fff; background: var(--blurple); box-shadow: 0 8px 22px rgba(88, 101, 242, .18); }
 .primary:hover { background: var(--blurple-hover); transform: none; }
-.secondary { color: var(--text-2); background: var(--surface-2); }
-.secondary:hover { background: var(--surface-3); }
-.ghost { color: var(--muted); background: transparent; }
-.ghost:hover { color: var(--text); background: var(--hover); }
+.secondary,
+.ghost { color: var(--text-2); background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.025); }
+.secondary:hover,
+.ghost:hover { color: #fff; background: var(--surface-3); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
 .danger { color: #fff; background: var(--red); }
 .danger:hover { background: #b82f34; }
 .session-end { min-height: 36px; padding-inline: 13px; color: var(--text-2); background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.025); }
 .session-end:hover { color: #ff7478; background: rgba(218,55,60,.14); box-shadow: inset 0 0 0 1px rgba(218,55,60,.2); }
 .primary:disabled,
-.secondary:disabled { opacity: .46; cursor: not-allowed; transform: none; }
+.secondary:disabled,
+.ghost:disabled { opacity: .46; cursor: not-allowed; transform: none; }
 
 .tabs {
   display: flex;
@@ -916,7 +917,6 @@ svg {
 .warning-symbol svg { width: 30px; height: 30px; stroke-width: 2; }
 .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 20px 20px; }
 .confirm-actions button { width: 100%; min-height: 44px; }
-.confirm-actions .secondary { background: var(--surface-2); }
 
 .modal-head {
   display: flex;
@@ -931,8 +931,6 @@ svg {
 .modal-head p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
 .modal-body { padding: 20px 22px; overflow-y: auto; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--sidebar-deep); }
-.modal button[data-modal-close]:not(.icon-button) { color: var(--text-2); background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.025); transition: color var(--ease), background var(--ease), box-shadow var(--ease); }
-.modal button[data-modal-close]:not(.icon-button):hover { color: #fff; background: var(--surface-3); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
 
 .field { display: grid; gap: 7px; margin-bottom: 16px; }
 .field label,
