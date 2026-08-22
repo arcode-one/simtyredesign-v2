@@ -368,7 +368,6 @@ function renderChannelSettings() {
   const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.channelSettingsTab === id ? "active" : ""}" data-channel-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="delete-channel">${icon("trash")}Удалить канал</button></nav>`;
   const subjects = [
     ["everyone", "role", "@everyone", "Роль сервера"],
-    ["test-user", "users", "ArCode", "Пользователь"],
   ];
   if (state.customPermissionRole) subjects.push(["new-role", "role", state.roleNames["new-role"] || "Новая роль", "Роль сервера"]);
   const selected = subjects.find(([id]) => id === state.selectedPermissionSubject) || subjects[0];
