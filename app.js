@@ -12,6 +12,7 @@ const state = {
   serverMenu: false,
   infoOpen: false,
   infoTab: "media",
+  favoriteInfoTab: "media",
   friendsTab: "all",
   notificationMenu: false,
   notificationMuteMenu: false,
@@ -114,7 +115,7 @@ function renderHeader() {
 
   if (state.view === "favorite") {
     head.innerHTML = `
-      <div class="head-start">${mobile}${icon("bookmark")}<strong>Избранное</strong></div>`;
+      <div class="head-start">${mobile}<button class="favorite-head-trigger" data-modal="favorite-info" aria-label="Открыть сведения об Избранном">${icon("bookmark")}<strong>Избранное</strong></button></div>`;
     return;
   }
 
@@ -225,6 +226,29 @@ function renderApp() {
 function modalShell(title, subtitle, content, footer = "", wide = false) {
   const mobileBack = wide && state.mobileSettingsView ? `<button class="icon-button mobile-settings-header-back" data-action="mobile-settings-back" aria-label="Назад к разделам">${icon("arrow-left")}</button>` : "";
   return `<section class="modal ${wide ? "wide" : ""}" role="dialog" aria-modal="true" aria-label="${title}"><header class="modal-head">${mobileBack}<div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ""}</div><button class="icon-button" data-modal-close aria-label="Закрыть">${icon("close")}</button></header>${content}${footer}</section>`;
+}
+
+function renderFavoriteInfo() {
+  const tabs = {
+    media: { label: "Медиа", icon: "image", text: "Фото и видео пока не отправляли" },
+    records: { label: "Записи", icon: "play", text: "Голосовых сообщений пока нет" },
+    files: { label: "Файлы", icon: "file", text: "Файлы пока не отправляли" },
+  };
+  const active = tabs[state.favoriteInfoTab] || tabs.media;
+  return `<section class="modal favorite-info-modal" role="dialog" aria-modal="true" aria-labelledby="favoriteInfoTitle">
+    <button class="icon-button favorite-info-close" data-modal-close aria-label="Закрыть">${icon("close")}</button>
+    <div class="favorite-info-profile">
+      <div class="favorite-info-symbol">${icon("bookmark")}</div>
+      <h2 id="favoriteInfoTitle">Избранное</h2>
+    </div>
+    <div class="favorite-info-tabs" role="tablist" aria-label="Содержимое Избранного">
+      ${Object.entries(tabs).map(([id, tab]) => `<button class="${state.favoriteInfoTab === id ? "active" : ""}" data-favorite-info-tab="${id}" role="tab" aria-selected="${state.favoriteInfoTab === id}">${tab.label}</button>`).join("")}
+    </div>
+    <div class="favorite-info-empty">
+      <div class="favorite-empty-icon ${state.favoriteInfoTab === "media" ? "media" : ""}">${icon(active.icon)}</div>
+      <p>${active.text}</p>
+    </div>
+  </section>`;
 }
 
 const permissionGroups = [
@@ -396,7 +420,9 @@ function renderModal() {
   root.classList.add("open");
   root.classList.toggle("confirm-open", state.modal.startsWith("confirm:"));
 
-  if (state.modal === "new-chat") {
+  if (state.modal === "favorite-info") {
+    root.innerHTML = renderFavoriteInfo();
+  } else if (state.modal === "new-chat") {
     root.innerHTML = modalShell("Начать беседу", "Создайте личную переписку с другом.", `<form id="newChatForm"><div class="modal-body"><div class="field"><label>Имя пользователя</label><input class="input" id="newChatName" placeholder="Введите имя пользователя вашего друга" autofocus /></div></div><footer class="modal-foot"><button class="secondary" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать ЛС</button></footer></form>`);
   } else if (state.modal === "create-server") {
     root.innerHTML = modalShell("Создать сервер", "Выберите тип доступа и название.", `<form id="createServerForm"><div class="modal-body"><span class="eyebrow">Тип доступа</span><div class="choice-grid"><button class="choice selected" type="button" data-choice>${icon("lock")}<span><strong>Приватный</strong><small>Доступ только по приглашению</small></span></button><button class="choice" type="button" data-choice>${icon("user-check")}<span><strong>По заявке</strong><small>Виден всем, вход по одобрению заявки</small></span></button><button class="choice" type="button" data-choice>${icon("globe")}<span><strong>Публичный</strong><small>Любой может присоединиться</small></span></button></div><div class="field"><label>Название</label><input class="input" id="serverName" placeholder="Сообщество ArCode" required /></div></div><footer class="modal-foot"><button class="secondary" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать</button></footer></form>`);
@@ -653,6 +679,9 @@ document.addEventListener("click", (event) => {
 
   const infoTab = event.target.closest("[data-info-tab]");
   if (infoTab) { state.infoTab = infoTab.dataset.infoTab; renderDrawer(); return; }
+
+  const favoriteInfoTab = event.target.closest("[data-favorite-info-tab]");
+  if (favoriteInfoTab) { state.favoriteInfoTab = favoriteInfoTab.dataset.favoriteInfoTab; renderModal(); return; }
 
   const friendTab = event.target.closest("[data-friends-tab]");
   if (friendTab) { state.friendsTab = friendTab.dataset.friendsTab; renderMain(); return; }
