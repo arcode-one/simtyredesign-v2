@@ -114,8 +114,7 @@ function renderHeader() {
 
   if (state.view === "favorite") {
     head.innerHTML = `
-      <div class="head-start">${mobile}${icon("bookmark")}<strong>Избранное</strong></div>
-      <div class="head-end"><button class="icon-button" data-action="info" aria-label="Информация">${icon("at")}</button><button class="icon-button" data-toast="Настройки беседы">${icon("settings")}</button></div>`;
+      <div class="head-start">${mobile}${icon("bookmark")}<strong>Избранное</strong></div>`;
     return;
   }
 
