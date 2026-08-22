@@ -745,10 +745,12 @@ svg {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px;
-  padding: 7px 22px;
+  margin-inline: 14px;
+  padding: 7px 8px;
+  border-radius: 12px;
 }
 
-.message:hover { background: rgba(0, 0, 0, .08); }
+.message:hover { background: rgba(255, 255, 255, .035); }
 .message .avatar { width: 40px; height: 40px; }
 .message-meta { display: flex; align-items: baseline; gap: 7px; }
 .message-meta strong { font-weight: 700; }
@@ -1528,7 +1530,7 @@ input[type="range"] { width: 100%; accent-color: var(--blurple); }
   .chat { padding-bottom: 12px; }
   .channel-intro { margin-inline: 14px; }
   .channel-intro h2 { font-size: 22px; }
-  .message { grid-template-columns: 36px minmax(0,1fr); gap: 9px; padding-inline: 12px; }
+  .message { grid-template-columns: 36px minmax(0,1fr); gap: 9px; margin-inline: 6px; padding-inline: 6px; border-radius: 10px; }
   .message .avatar { width: 34px; height: 34px; }
 
   .composer { gap: 5px; padding: 0 6px calc(6px + env(safe-area-inset-bottom)); }
