@@ -732,6 +732,27 @@ svg {
   box-shadow: none;
 }
 
+.friend-list { overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.018); }
+.friend-list-heading { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 15px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; }
+.friend-list-heading strong { display: grid; place-items: center; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px; color: var(--text-2); background: var(--surface-2); font-size: 10px; }
+.friend-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 68px; padding: 9px 11px 9px 14px; border-bottom: 1px solid rgba(255,255,255,.055); transition: background var(--ease); }
+.friend-row:last-child { border-bottom: 0; }
+.friend-row:hover { background: rgba(255,255,255,.035); }
+.friend-avatar-wrap { position: relative; display: block; width: 42px; height: 42px; }
+.friend-avatar-wrap .avatar { width: 42px; height: 42px; font-size: 13px; }
+.friend-copy { display: grid; gap: 3px; min-width: 0; }
+.friend-copy.single-line { align-self: stretch; display: flex; align-items: center; }
+.friend-copy strong { overflow: hidden; color: var(--text); font-size: 13px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+.friend-copy small { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.friend-actions { display: flex; align-items: center; gap: 6px; }
+.friend-action { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 9px; color: var(--muted); background: var(--surface-2); cursor: pointer; transition: color var(--ease), border-color var(--ease), background var(--ease); }
+.friend-action svg { width: 17px; height: 17px; stroke-width: 2; }
+.friend-action.friend-message:hover { color: #fff; border-color: rgba(121,131,245,.28); background: rgba(88,101,242,.24); }
+.friend-action.accept:hover { color: #4de0a0; border-color: rgba(60,207,145,.28); background: rgba(60,207,145,.13); }
+.friend-action.reject:hover,
+.friend-action.remove:hover { color: #ff7b7f; border-color: rgba(255,112,116,.28); background: rgba(218,55,60,.14); }
+.friend-action:focus-visible { outline: 2px solid var(--blurple-light); outline-offset: 2px; }
+
 .chat {
   display: flex;
   flex-direction: column;

@@ -40,6 +40,13 @@ const state = {
   editingMessage: null,
   mobileNotificationPromptOpen: false,
   mobileNotificationPromptSeen: false,
+  friendUsers: [
+    { id: "friend-test", name: "Test user 7K3IAI", initials: "T", tone: "green" },
+  ],
+  incomingFriendRequests: [
+    { id: "incoming-test", name: "Test user 1aCI06", initials: "T", tone: "teal" },
+  ],
+  outgoingFriendRequests: [],
   modal: null,
   modalParent: null,
 };
@@ -204,12 +211,30 @@ function renderFriends() {
     outgoing: { icon: "clock", title: "Нет исходящих запросов", text: "Отправленные вами запросы дружбы и их статус будут отображаться здесь." },
   };
   const empty = emptyStates[state.friendsTab] || emptyStates.all;
+  const lists = {
+    all: state.friendUsers,
+    incoming: state.incomingFriendRequests,
+    outgoing: state.outgoingFriendRequests,
+  };
+  const people = lists[state.friendsTab] || [];
+  const counts = {
+    all: state.friendUsers.length,
+    incoming: state.incomingFriendRequests.length,
+    outgoing: state.outgoingFriendRequests.length,
+  };
+  const listLabels = { all: "Друзья", incoming: "Входящие запросы", outgoing: "Исходящие запросы" };
+  const renderActions = (person) => {
+    if (state.friendsTab === "incoming") return `<button class="friend-action accept" type="button" data-friend-action="accept" data-friend-id="${person.id}" aria-label="Принять запрос" title="Принять запрос">${icon("user-check")}</button><button class="friend-action reject" type="button" data-friend-action="reject" data-friend-id="${person.id}" aria-label="Отклонить запрос" title="Отклонить запрос">${icon("user-x")}</button>`;
+    if (state.friendsTab === "outgoing") return `<button class="friend-action reject" type="button" data-friend-action="cancel" data-friend-id="${person.id}" aria-label="Отменить запрос" title="Отменить запрос">${icon("close")}</button>`;
+    return `<button class="friend-action friend-message" type="button" data-friend-action="message" data-friend-id="${person.id}" aria-label="Написать сообщение" title="Написать сообщение">${icon("chat")}</button><button class="friend-action remove" type="button" data-friend-action="remove" data-friend-id="${person.id}" aria-label="Удалить из друзей" title="Удалить из друзей">${icon("trash")}</button>`;
+  };
+  const friendContent = people.length ? `<section class="friend-list" aria-label="${listLabels[state.friendsTab]}"><div class="friend-list-heading"><span>${listLabels[state.friendsTab]}</span><strong>${people.length}</strong></div>${people.map((person) => `<article class="friend-row"><span class="friend-avatar-wrap"><span class="avatar ${person.tone || ""}">${escapeHTML(person.initials)}</span></span><span class="friend-copy ${state.friendsTab === "all" ? "single-line" : ""}"><strong>${escapeHTML(person.name)}</strong>${state.friendsTab === "incoming" ? "<small>Хочет добавить вас в друзья</small>" : state.friendsTab === "outgoing" ? "<small>Ожидает ответа</small>" : ""}</span><span class="friend-actions">${renderActions(person)}</span></article>`).join("")}</section>` : `<div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol friend-symbol ${state.friendsTab}">${icon(empty.icon)}</div><h2>${empty.title}</h2><p>${empty.text}</p></div></div>`;
   return `
     <div class="page">
       <div class="page-title"><h1>Добавить друга</h1><p>Введите точное имя пользователя, чтобы отправить запрос.</p></div>
       <form class="friend-add" id="friendForm"><input class="input" id="friendName" placeholder="Введите имя пользователя" aria-label="Введите имя пользователя" /><button class="primary" type="submit">Добавить</button></form>
-      <div class="tabs"><button class="tab ${state.friendsTab === "all" ? "active" : ""}" data-friends-tab="all">Все <span class="pill">0</span></button><button class="tab ${state.friendsTab === "incoming" ? "active" : ""}" data-friends-tab="incoming">Входящие <span class="pill">0</span></button><button class="tab ${state.friendsTab === "outgoing" ? "active" : ""}" data-friends-tab="outgoing">Исходящие <span class="pill">0</span></button></div>
-      <div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol friend-symbol ${state.friendsTab}">${icon(empty.icon)}</div><h2>${empty.title}</h2><p>${empty.text}</p></div></div>
+      <div class="tabs"><button class="tab ${state.friendsTab === "all" ? "active" : ""}" data-friends-tab="all">Все <span class="pill">${counts.all}</span></button><button class="tab ${state.friendsTab === "incoming" ? "active" : ""}" data-friends-tab="incoming">Входящие <span class="pill">${counts.incoming}</span></button><button class="tab ${state.friendsTab === "outgoing" ? "active" : ""}" data-friends-tab="outgoing">Исходящие <span class="pill">${counts.outgoing}</span></button></div>
+      ${friendContent}
     </div>`;
 }
 
@@ -997,6 +1022,43 @@ document.addEventListener("click", (event) => {
   const friendTab = event.target.closest("[data-friends-tab]");
   if (friendTab) { state.friendsTab = friendTab.dataset.friendsTab; renderMain(); return; }
 
+  const friendAction = event.target.closest("[data-friend-action]");
+  if (friendAction) {
+    const action = friendAction.dataset.friendAction;
+    const id = friendAction.dataset.friendId;
+    const source = action === "accept" || action === "reject" ? state.incomingFriendRequests : action === "cancel" ? state.outgoingFriendRequests : state.friendUsers;
+    const index = source.findIndex((person) => person.id === id);
+    if (index < 0) return;
+    const person = source[index];
+
+    if (action === "message") {
+      let dm = directMessages.find((item) => item.friendId === person.id);
+      if (!dm) {
+        dm = { id: `dm-${person.id}`, friendId: person.id, name: person.name, initials: person.initials, tone: person.tone };
+        directMessages.push(dm);
+      }
+      state.space = "home";
+      state.view = "dm";
+      state.selectedDM = dm.id;
+      renderApp();
+      return;
+    }
+
+    source.splice(index, 1);
+    if (action === "accept") {
+      state.friendUsers.push(person);
+      showMessage({ type: "success", title: "Запрос принят", text: `${person.name} теперь в списке друзей.` });
+    } else if (action === "reject") {
+      showMessage({ type: "info", title: "Запрос отклонён", text: `Запрос от пользователя ${person.name} удалён.` });
+    } else if (action === "cancel") {
+      showMessage({ type: "info", title: "Запрос отменён", text: `Приглашение для ${person.name} отозвано.` });
+    } else if (action === "remove") {
+      showMessage({ type: "info", title: "Друг удалён", text: `${person.name} удалён из списка друзей.` });
+    }
+    renderMain();
+    return;
+  }
+
   const userTab = event.target.closest("[data-user-settings-tab]");
   if (userTab) { state.userSettingsTab = userTab.dataset.userSettingsTab; state.mobileSettingsView = window.matchMedia("(max-width: 767px)").matches; renderModal(); return; }
 
@@ -1112,8 +1174,15 @@ document.addEventListener("submit", (event) => {
   if (event.target.id === "friendForm") {
     const value = $("#friendName").value.trim();
     if (value) {
+      const duplicate = [...state.friendUsers, ...state.incomingFriendRequests, ...state.outgoingFriendRequests].some((person) => person.name.toLowerCase() === value.toLowerCase());
+      if (duplicate) {
+        showMessage({ type: "warning", title: "Запрос уже существует", text: `Пользователь «${value}» уже есть в списке.`, duration: 4000 });
+        return;
+      }
+      state.outgoingFriendRequests.push({ id: `outgoing-${Date.now()}`, name: value, initials: value.slice(0, 1).toUpperCase(), tone: "" });
       showMessage({ type: "success", title: "Запрос в друзья отправлен", text: `Приглашение пользователю «${value}» успешно отправлено.`, duration: 4200 });
       $("#friendName").value = "";
+      renderMain();
     } else {
       showMessage({ type: "warning", title: "Не удалось отправить запрос", text: "Введите точное имя пользователя.", duration: 4000 });
     }
