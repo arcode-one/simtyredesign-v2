@@ -6,9 +6,9 @@ const escapeHTML = (text = "") => text.replace(/[&<>'"]/g, (char) => ({ "&": "&a
 
 const state = {
   space: "home",
-  view: "landing",
+  view: "dm",
   selectedChannel: null,
-  selectedDM: null,
+  selectedDM: "dm-friend-test",
   serverMenu: false,
   infoOpen: false,
   infoTab: "media",
@@ -49,11 +49,20 @@ const state = {
   outgoingFriendRequests: [
     { id: "outgoing-test", name: "Test user Q8M4K2", initials: "T", tone: "blue" },
   ],
+  activeCall: true,
+  callLayout: "split",
+  callMicMuted: false,
+  callSoundMuted: false,
+  callCameraEnabled: false,
+  callSharing: false,
+  callDeviceMenu: null,
   modal: null,
   modalParent: null,
 };
 
-const directMessages = [];
+const directMessages = [
+  { id: "dm-friend-test", friendId: "friend-test", name: "Test user 7K3IAI", initials: "T", tone: "green" },
+];
 
 const messages = {
   favorite: [
@@ -64,7 +73,10 @@ const messages = {
     { id: "channel-1", name: "ArCode", initials: "A", tone: "", time: "15:21", text: "Добро пожаловать в основной канал сервера." },
     { id: "channel-2", name: "Мария", initials: "М", tone: "pink", time: "15:24", text: "Здесь можно обсуждать общие вопросы и делиться файлами." },
   ],
-  dm: [],
+  dm: [
+    { id: "dm-hello", name: "Test user 7K3IAI", initials: "T", tone: "green", time: "23:15", text: "Привет!" },
+    { id: "dm-call-start", type: "event", event: "call-start", name: "Test user 7K3IAI", time: "23:16", text: "начал(а) звонок" },
+  ],
 };
 
 let messageSequence = 0;
@@ -159,6 +171,30 @@ function renderSidebar() {
   }
 }
 
+function renderActiveCallDock() {
+  const dock = $("#activeCallDock");
+  if (!state.activeCall) {
+    dock.classList.remove("open");
+    dock.innerHTML = "";
+    return;
+  }
+
+  dock.classList.add("open");
+  dock.innerHTML = `<section class="active-call-dock" data-action="open-call" role="button" tabindex="0" aria-label="Вернуться к звонку с Test user 7K3IAI">
+    <div class="active-call-dock-top">
+      <span class="call-live-dot" aria-hidden="true"></span>
+      <span class="active-call-dock-copy"><strong>Текущий звонок</strong><small>Test user 7K3IAI · 00:42</small></span>
+      ${icon("chevron")}
+    </div>
+    <div class="active-call-quick-actions" role="toolbar" aria-label="Быстрые действия звонка">
+      <button class="${state.callMicMuted ? "off" : ""}" type="button" data-action="call-mic" aria-label="${state.callMicMuted ? "Включить" : "Выключить"} микрофон" title="${state.callMicMuted ? "Включить" : "Выключить"} микрофон">${icon("mic")}</button>
+      <button class="${state.callSoundMuted ? "off" : ""}" type="button" data-action="call-sound" aria-label="${state.callSoundMuted ? "Включить" : "Выключить"} звук" title="${state.callSoundMuted ? "Включить" : "Выключить"} звук">${icon("volume")}</button>
+      <button class="${state.callCameraEnabled ? "active" : ""}" type="button" data-action="call-camera" aria-label="${state.callCameraEnabled ? "Выключить" : "Включить"} камеру" title="${state.callCameraEnabled ? "Выключить" : "Включить"} камеру">${icon("camera")}</button>
+      <button class="end" type="button" data-action="call-end" aria-label="Завершить звонок" title="Завершить звонок">${icon("phone")}</button>
+    </div>
+  </section>`;
+}
+
 function renderHeader() {
   const head = $("#mainHead");
   const mobile = `<button class="icon-button mobile-back-button" data-action="mobile-back" aria-label="Назад">${icon("arrow-left")}</button>`;
@@ -183,7 +219,8 @@ function renderHeader() {
 
   if (state.view === "dm") {
     const dm = directMessages.find((item) => item.id === state.selectedDM);
-    head.innerHTML = `<div class="head-start">${mobile}${icon("chat")}<strong>${dm?.name || "Беседа"}</strong></div><div class="head-end"><button class="icon-button" data-action="info" aria-label="Информация">${icon("at")}</button><button class="icon-button" data-toast="Настройки беседы">${icon("settings")}</button></div>`;
+    const inCall = state.activeCall && state.selectedDM === "dm-friend-test";
+    head.innerHTML = `<div class="head-start">${mobile}${icon("chat")}<strong>${dm?.name || "Беседа"}</strong>${inCall ? `<span class="head-call-status"><i></i>В звонке</span>` : ""}</div><div class="head-end">${inCall ? `<button class="icon-button active" data-action="open-call" aria-label="Вернуться к звонку" title="Вернуться к звонку">${icon("phone")}</button>` : ""}<button class="icon-button" data-action="info" aria-label="Информация">${icon("at")}</button><button class="icon-button" data-toast="Настройки беседы">${icon("settings")}</button></div>`;
     return;
   }
 
@@ -228,7 +265,7 @@ function renderFriends() {
   const renderActions = (person) => {
     if (state.friendsTab === "incoming") return `<button class="friend-action accept" type="button" data-friend-action="accept" data-friend-id="${person.id}" aria-label="Принять запрос" title="Принять запрос">${icon("user-check")}</button><button class="friend-action reject" type="button" data-friend-action="reject" data-friend-id="${person.id}" aria-label="Отклонить запрос" title="Отклонить запрос">${icon("user-x")}</button>`;
     if (state.friendsTab === "outgoing") return `<button class="friend-action reject cancel-request" type="button" data-friend-action="cancel" data-friend-id="${person.id}" aria-label="Отменить запрос" title="Отменить запрос">${icon("close")}</button>`;
-    return `<button class="friend-action friend-message" type="button" data-friend-action="message" data-friend-id="${person.id}" aria-label="Написать сообщение" title="Написать сообщение">${icon("chat")}</button><button class="friend-action remove" type="button" data-friend-action="remove" data-friend-id="${person.id}" aria-label="Удалить из друзей" title="Удалить из друзей">${icon("trash")}</button>`;
+    return `<button class="friend-action friend-call" type="button" data-friend-action="call" data-friend-id="${person.id}" aria-label="Показать входящий звонок" title="Показать входящий звонок">${icon("phone")}</button><button class="friend-action friend-message" type="button" data-friend-action="message" data-friend-id="${person.id}" aria-label="Написать сообщение" title="Написать сообщение">${icon("chat")}</button><button class="friend-action remove" type="button" data-friend-action="remove" data-friend-id="${person.id}" aria-label="Удалить из друзей" title="Удалить из друзей">${icon("trash")}</button>`;
   };
   const friendContent = people.length ? `<section class="friend-list" aria-label="${listLabels[state.friendsTab]}"><div class="friend-list-heading"><span>${listLabels[state.friendsTab]}</span><strong>${people.length}</strong></div>${people.map((person) => `<article class="friend-row"><span class="friend-avatar-wrap"><span class="avatar ${person.tone || ""}">${escapeHTML(person.initials)}</span></span><span class="friend-copy ${state.friendsTab === "all" ? "single-line" : ""}"><strong>${escapeHTML(person.name)}</strong>${state.friendsTab === "incoming" ? "<small>Хочет добавить вас в друзья</small>" : state.friendsTab === "outgoing" ? "<small>Ожидает ответа</small>" : ""}</span><span class="friend-actions">${renderActions(person)}</span></article>`).join("")}</section>` : `<div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol friend-symbol ${state.friendsTab}">${icon(empty.icon)}</div><h2>${empty.title}</h2><p>${empty.text}</p></div></div>`;
   return `
@@ -287,6 +324,15 @@ function jumpToMessage(key, targetId) {
 
 function renderMessages(list, key) {
   return list.map((message, index) => {
+    if (message.type === "event") {
+      const isCall = message.event === "call-start" || message.event === "call-end";
+      const label = message.event === "pin" ? "закрепил(а) сообщение" : message.event === "call-end" ? "завершил(а) звонок" : "начал(а) звонок";
+      return `<article class="chat-system-event ${message.event}" ${message.event === "call-start" && state.activeCall ? `data-action="open-call" role="button" tabindex="0"` : ""}>
+        <span class="chat-system-event-icon">${icon(isCall ? "phone" : "pin")}</span>
+        <span class="chat-system-event-copy"><span><strong>${escapeHTML(message.name)}</strong> ${label}</span>${message.event === "call-start" && state.activeCall ? "<small>Нажмите, чтобы вернуться к звонку</small>" : ""}</span>
+        <time>${escapeHTML(message.time || "только что")}</time>
+      </article>`;
+    }
     const selected = state.selectedMessage?.key === key && state.selectedMessage.index === index;
     return `
     <article class="message ${selected ? "selected" : ""} ${message.pinned ? "pinned" : ""}" data-message-id="${message.id}" data-message-index="${index}" data-message-key="${key}" tabindex="0" role="button" aria-label="Выбрать сообщение от ${escapeHTML(message.name)}" aria-pressed="${selected}">
@@ -306,21 +352,72 @@ function renderMessages(list, key) {
   }).join("");
 }
 
-function renderChat(type) {
+function renderChat(type, compact = false) {
   const isChannel = type === "channel";
   const name = type === "favorite" ? "Избранное" : isChannel ? "Основной" : directMessages.find((item) => item.id === state.selectedDM)?.name || "Беседа";
   const list = messages[type] || [];
   return `
-    <div class="chat">
-      <div class="channel-intro"><div class="empty-symbol">${icon(isChannel ? "hash" : type === "favorite" ? "bookmark" : "chat")}</div><h2>${isChannel ? "# Основной" : name}</h2><p>${type === "favorite" ? "Ваше личное пространство для сообщений и файлов." : isChannel ? "Здесь начинается история этого канала." : `Начало беседы с пользователем ${name}.`}</p></div>
+    <div class="chat ${compact ? "compact-call-chat" : ""}">
+      ${compact ? "" : `<div class="channel-intro"><div class="empty-symbol">${icon(isChannel ? "hash" : type === "favorite" ? "bookmark" : "chat")}</div><h2>${isChannel ? "# Основной" : name}</h2><p>${type === "favorite" ? "Ваше личное пространство для сообщений и файлов." : isChannel ? "Здесь начинается история этого канала." : `Начало беседы с пользователем ${name}.`}</p></div>`}
       <div class="date-line"><span>Сегодня</span></div>
       <div class="messages" id="messages">${renderMessages(list, type)}</div>
     </div>`;
 }
 
+function renderCallDeviceMenu(type) {
+  if (state.callDeviceMenu !== type) return "";
+  const labels = {
+    mic: ["Микрофон по умолчанию", "Realtek Audio Input", "Встроенный микрофон"],
+    sound: ["Динамики по умолчанию", "Realtek Digital Output", "Динамики (Realtek Audio)"],
+    camera: ["Камера по умолчанию", "Integrated Camera", "Виртуальная камера"],
+  };
+  return `<div class="call-device-menu" role="menu" aria-label="Выбор устройства">
+    <span class="call-device-menu-title">Устройство</span>
+    ${labels[type].map((label, index) => `<button type="button" data-call-device="${escapeHTML(label)}"><span>${escapeHTML(label)}</span>${index === 0 ? icon("check") : ""}</button>`).join("")}
+  </div>`;
+}
+
+function renderCallControl(type, iconName, label, active = false, hasMenu = false) {
+  const off = (type === "mic" && state.callMicMuted) || (type === "sound" && state.callSoundMuted) || (type === "camera" && !state.callCameraEnabled);
+  return `<div class="call-control-group ${hasMenu ? "has-menu" : ""}">
+    <button class="call-control-main ${active ? "active" : ""} ${off ? "off" : ""}" type="button" data-action="call-${type}" aria-label="${label}" title="${label}">${icon(iconName)}</button>
+    ${hasMenu ? `<button class="call-control-menu ${state.callDeviceMenu === type ? "open" : ""}" type="button" data-action="call-device-${type}" aria-label="Выбрать устройство" title="Выбрать устройство">${icon("chevron")}</button>${renderCallDeviceMenu(type)}` : ""}
+  </div>`;
+}
+
+function renderCallStage() {
+  const split = state.callLayout === "split";
+  return `<section class="call-stage ${split ? "split" : "focus"}" aria-label="Активный звонок">
+    <header class="call-stage-head">
+      <div class="call-stage-meta"><span class="call-live-pill"><i></i>В звонке</span><strong>Test user 7K3IAI</strong><small>2 участника · 00:42</small></div>
+      <div class="call-view-actions">
+        <button type="button" data-action="call-layout" aria-label="${split ? "Скрыть чат" : "Показать чат"}" title="${split ? "Скрыть чат" : "Показать чат"}">${icon(split ? "maximize" : "chat")}</button>
+      </div>
+    </header>
+    <div class="call-participants">
+      <article class="call-participant speaking"><span class="call-participant-avatar green">T</span><span class="call-participant-name"><i></i>Test user 7K3IAI</span></article>
+      <article class="call-participant"><span class="call-participant-avatar">A</span><span class="call-participant-name">ArCode</span>${state.callMicMuted ? `<span class="participant-muted">${icon("mic")}</span>` : ""}</article>
+    </div>
+    <div class="call-controls" role="toolbar" aria-label="Управление звонком">
+      ${renderCallControl("mic", "mic", state.callMicMuted ? "Включить микрофон" : "Выключить микрофон", false, true)}
+      ${renderCallControl("sound", "volume", state.callSoundMuted ? "Включить звук" : "Выключить звук", false, true)}
+      ${renderCallControl("camera", "camera", state.callCameraEnabled ? "Выключить камеру" : "Включить камеру", state.callCameraEnabled, true)}
+      ${renderCallControl("share", "monitor", state.callSharing ? "Остановить демонстрацию" : "Показать экран", state.callSharing)}
+      <button class="call-end-button" type="button" data-action="call-end" aria-label="Завершить звонок" title="Завершить звонок">${icon("phone")}<span>Завершить</span></button>
+    </div>
+  </section>`;
+}
+
+function isCurrentCallView() {
+  return state.activeCall && state.view === "dm" && state.selectedDM === "dm-friend-test";
+}
+
 function renderMain() {
   const view = $("#mainView");
-  if (state.view === "friends") view.innerHTML = renderFriends();
+  const callView = isCurrentCallView();
+  view.classList.toggle("call-view-active", callView);
+  if (callView) view.innerHTML = `<div class="call-chat-layout ${state.callLayout}">${renderCallStage()}<section class="call-chat-pane" aria-label="Чат звонка">${renderChat("dm", true)}</section></div>`;
+  else if (state.view === "friends") view.innerHTML = renderFriends();
   else if (["favorite", "channel", "dm"].includes(state.view)) view.innerHTML = renderChat(state.view);
   else view.innerHTML = renderLanding();
 }
@@ -354,7 +451,7 @@ function updateComposerActionButton() {
 
 function renderComposer() {
   const composer = $("#composer");
-  const show = ["favorite", "channel", "dm"].includes(state.view);
+  const show = ["favorite", "channel", "dm"].includes(state.view) && !(isCurrentCallView() && state.callLayout === "focus");
   composer.classList.toggle("hidden", !show);
   if (!show) return;
   const input = $("#messageInput");
@@ -397,7 +494,7 @@ function renderMobileNotificationPrompt() {
   const mobile = window.matchMedia("(max-width: 767px)").matches;
   const chatOpen = ["favorite", "channel", "dm"].includes(state.view);
 
-  if (mobile && chatOpen && !state.mobileNotificationPromptSeen) {
+  if (mobile && chatOpen && !state.activeCall && !state.mobileNotificationPromptSeen) {
     state.mobileNotificationPromptSeen = true;
     state.mobileNotificationPromptOpen = true;
   }
@@ -423,6 +520,7 @@ function renderApp() {
   $("#app").classList.toggle("mobile-content", state.view !== "landing");
   $$("[data-space]").forEach((button) => button.classList.toggle("active", button.dataset.space === state.space));
   renderSidebar();
+  renderActiveCallDock();
   renderHeader();
   renderMain();
   renderComposer();
@@ -632,13 +730,38 @@ function renderConfirm(type) {
   return `<section class="modal confirm-modal" role="alertdialog" aria-modal="true" aria-label="${item.title}"><button class="confirm-close icon-button" data-modal-close aria-label="Закрыть">${icon("close")}</button><div class="confirm-body"><div class="warning-symbol">${icon("warning")}</div><h2>${item.title}</h2><p>${item.text}</p></div><footer class="confirm-actions"><button class="secondary" data-modal-close>Отмена</button><button class="danger" data-confirm-submit="${type}">${item.button}</button></footer></section>`;
 }
 
+function renderIncomingCall() {
+  return `<section class="modal incoming-call-modal" role="dialog" aria-modal="true" aria-labelledby="incomingCallTitle" aria-describedby="incomingCallType">
+    <header class="incoming-call-head">
+      <span class="incoming-call-label">Входящий звонок</span>
+      <button class="icon-button incoming-call-close" type="button" data-call-action="decline" aria-label="Отклонить звонок">${icon("close")}</button>
+    </header>
+    <div class="incoming-call-body">
+      <div class="incoming-call-avatar-wrap" aria-hidden="true">
+        <span class="call-ring call-ring-one"></span>
+        <span class="call-ring call-ring-two"></span>
+        <span class="incoming-call-avatar">T</span>
+        <span class="incoming-call-badge">${icon("phone")}</span>
+      </div>
+      <h2 id="incomingCallTitle">Test user 7K3IAI</h2>
+      <p id="incomingCallType">Аудиозвонок</p>
+    </div>
+    <footer class="incoming-call-actions">
+      <button class="call-button decline" type="button" data-call-action="decline">${icon("phone")}<span>Отклонить</span></button>
+      <button class="call-button accept" type="button" data-call-action="accept">${icon("phone")}<span>Принять</span></button>
+    </footer>
+  </section>`;
+}
+
 function renderModal() {
   const root = $("#modalRoot");
   if (!state.modal) { root.classList.remove("open", "confirm-open"); root.innerHTML = ""; return; }
   root.classList.add("open");
   root.classList.toggle("confirm-open", state.modal.startsWith("confirm:"));
 
-  if (state.modal === "favorite-info") {
+  if (state.modal === "incoming-call") {
+    root.innerHTML = renderIncomingCall();
+  } else if (state.modal === "favorite-info") {
     root.innerHTML = renderFavoriteInfo();
   } else if (state.modal === "new-chat") {
     root.innerHTML = modalShell("Начать беседу", "Создайте личную переписку с другом.", `<form id="newChatForm"><div class="modal-body"><div class="field"><label>Имя пользователя</label><input class="input" id="newChatName" placeholder="Введите имя пользователя вашего друга" autofocus /></div></div><footer class="modal-foot"><button class="secondary" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать ЛС</button></footer></form>`);
@@ -831,6 +954,8 @@ document.addEventListener("click", (event) => {
     }
     if (messageAction === "pin") {
       message.pinned = !message.pinned;
+      if (message.pinned) messages[key].splice(index + 1, 0, { id: `${key}-pin-${Date.now()}`, type: "event", event: "pin", name: "ArCode", time: "только что" });
+      state.selectedMessage = null;
       renderMain();
       showToast(message.pinned ? "Сообщение закреплено" : "Сообщение откреплено");
       return;
@@ -858,6 +983,29 @@ document.addEventListener("click", (event) => {
 
   const modal = event.target.closest("[data-modal]");
   if (modal) { event.stopPropagation(); openModal(modal.dataset.modal); return; }
+
+  const callAction = event.target.closest("[data-call-action]")?.dataset.callAction;
+  if (callAction) {
+    const wasActive = state.activeCall;
+    state.modal = null;
+    state.modalParent = null;
+    if (callAction === "accept") {
+      state.activeCall = true;
+      state.callLayout = "split";
+      state.space = "home";
+      state.view = "dm";
+      state.selectedDM = "dm-friend-test";
+      if (!wasActive) messages.dm.push({ id: `dm-call-${Date.now()}`, type: "event", event: "call-start", name: "Test user 7K3IAI", time: "только что" });
+      renderApp();
+      renderModal();
+      showMessage({ type: "success", title: "Звонок принят", text: "Вы подключились к звонку." });
+    } else {
+      renderModal();
+      showMessage({ type: "info", title: "Звонок завершён", text: "Входящий звонок отклонён." });
+    }
+    return;
+  }
+
   if (event.target.closest("[data-modal-close]") || event.target === $("#modalRoot")) { closeModal(); return; }
 
   const confirm = event.target.closest("[data-confirm]");
@@ -889,6 +1037,64 @@ document.addEventListener("click", (event) => {
   }
 
   const action = event.target.closest("[data-action]")?.dataset.action;
+  if (action === "open-call") {
+    state.space = "home";
+    state.view = "dm";
+    state.selectedDM = "dm-friend-test";
+    state.callDeviceMenu = null;
+    renderApp();
+    return;
+  }
+  if (action === "call-layout") {
+    state.callLayout = state.callLayout === "split" ? "focus" : "split";
+    state.callDeviceMenu = null;
+    renderMain();
+    renderComposer();
+    return;
+  }
+  if (action === "call-mic") {
+    state.callMicMuted = !state.callMicMuted;
+    state.callDeviceMenu = null;
+    renderMain();
+    renderActiveCallDock();
+    return;
+  }
+  if (action === "call-sound") {
+    state.callSoundMuted = !state.callSoundMuted;
+    state.callDeviceMenu = null;
+    renderMain();
+    renderActiveCallDock();
+    return;
+  }
+  if (action === "call-camera") {
+    state.callCameraEnabled = !state.callCameraEnabled;
+    state.callDeviceMenu = null;
+    renderMain();
+    renderActiveCallDock();
+    return;
+  }
+  if (action === "call-share") {
+    state.callSharing = !state.callSharing;
+    state.callDeviceMenu = null;
+    renderMain();
+    showToast(state.callSharing ? "Демонстрация экрана включена" : "Демонстрация экрана остановлена");
+    return;
+  }
+  if (action?.startsWith("call-device-")) {
+    const menu = action.replace("call-device-", "");
+    state.callDeviceMenu = state.callDeviceMenu === menu ? null : menu;
+    renderMain();
+    return;
+  }
+  if (action === "call-end") {
+    state.activeCall = false;
+    state.callDeviceMenu = null;
+    state.callLayout = "split";
+    messages.dm.push({ id: `dm-call-end-${Date.now()}`, type: "event", event: "call-end", name: "ArCode", time: "только что" });
+    renderApp();
+    showMessage({ type: "info", title: "Звонок завершён", text: "Длительность — 00:42" });
+    return;
+  }
   if (action === "server-menu") { state.serverMenu = !state.serverMenu; renderSidebar(); return; }
   if (action === "notifications") {
     state.notificationMenu = !state.notificationMenu;
@@ -1015,6 +1221,14 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const callDevice = event.target.closest("[data-call-device]")?.dataset.callDevice;
+  if (callDevice) {
+    state.callDeviceMenu = null;
+    renderMain();
+    showToast(`Выбрано устройство: ${callDevice}`);
+    return;
+  }
+
   const infoTab = event.target.closest("[data-info-tab]");
   if (infoTab) { state.infoTab = infoTab.dataset.infoTab; renderDrawer(); return; }
 
@@ -1032,6 +1246,18 @@ document.addEventListener("click", (event) => {
     const index = source.findIndex((person) => person.id === id);
     if (index < 0) return;
     const person = source[index];
+
+    if (action === "call") {
+      if (state.activeCall) {
+        state.space = "home";
+        state.view = "dm";
+        state.selectedDM = "dm-friend-test";
+        renderApp();
+        return;
+      }
+      openModal("incoming-call");
+      return;
+    }
 
     if (action === "message") {
       let dm = directMessages.find((item) => item.friendId === person.id);
@@ -1300,6 +1526,13 @@ document.addEventListener("keydown", (event) => {
     } else if (state.permissionAddMenu) {
       state.permissionAddMenu = false;
       renderModal();
+    } else if (state.callDeviceMenu) {
+      state.callDeviceMenu = null;
+      renderMain();
+    } else if (isCurrentCallView() && state.callLayout === "focus") {
+      state.callLayout = "split";
+      renderMain();
+      renderComposer();
     } else if (state.modal) closeModal();
     else closeMobile();
   }
@@ -1308,6 +1541,10 @@ document.addEventListener("keydown", (event) => {
     $("#composer").requestSubmit();
   }
   if (["Enter", " "].includes(event.key) && event.target.matches("[data-message-index]") && !event.target.closest("button")) {
+    event.preventDefault();
+    event.target.click();
+  }
+  if (["Enter", " "].includes(event.key) && event.target.matches("[data-action='open-call'][role='button']")) {
     event.preventDefault();
     event.target.click();
   }
