@@ -475,6 +475,7 @@ function renderPermissionMatrix(scope = "channel") {
 function renderUserSettings() {
   const tabs = [
     ["profile", "users", "Профиль"],
+    ["notifications", "bell", "Уведомления"],
     ["voice", "mic", "Голос и видео"],
     ["devices", "monitor", "Устройства"],
   ];
@@ -484,6 +485,16 @@ function renderUserSettings() {
 }
 
 function renderUserSettingsView() {
+  if (state.userSettingsTab === "notifications") {
+    const messageTests = [
+      ["success", "check", "Успех", "Запрос в друзья отправлен", "Приглашение пользователю «TestUser» успешно отправлено."],
+      ["warning", "warning", "Предупреждение", "Не удалось отправить запрос", "Введите точное имя пользователя."],
+      ["info", "bell", "Информация", "Сообщение закреплено", "Оно будет доступно всем участникам."],
+      ["error", "close", "Ошибка", "Не удалось выполнить действие", "Попробуйте ещё раз."],
+    ];
+    return `<div class="page-title notification-test-heading"><h1>Уведомления</h1><p>Нажмите на состояние, чтобы посмотреть универсальную плашку.</p></div><div class="settings-card notification-test-card"><h2>Состояния сообщений</h2><div class="notification-test-grid">${messageTests.map(([type, iconName, label, title, text]) => `<button class="notification-test-button ${type}" type="button" data-message-test="${type}" data-message-title="${title}" data-message-text="${text}"><span class="notification-test-icon">${icon(iconName)}</span><span><strong>${label}</strong><small>${title}</small></span></button>`).join("")}</div></div>`;
+  }
+
   if (state.userSettingsTab === "voice") {
     return `<h1>Голос и видео</h1><div class="settings-card"><h2>Устройства</h2><div class="field"><label>Устройство ввода (микрофон)</label><select class="select"><option>Устройство audioinput</option></select></div><div class="range-row"><label>Громкость микрофона</label><input type="range" min="0" max="200" value="100" data-output="micRange" /><output id="micRange">100%</output></div><div class="field"><label>Устройство вывода</label><select class="select"><option>Устройство audiooutput</option></select></div><div class="range-row"><label>Громкость вывода</label><input type="range" min="0" max="200" value="100" data-output="soundRange" /><output id="soundRange">100%</output></div></div><div class="settings-card"><h2>Режим голосовой активации</h2><div class="type-switch"><button class="active" type="button" data-type-button>Голосовая активация</button><button type="button" data-type-button>Режим рации</button></div><div class="range-row"><label>Чувствительность</label><input type="range" min="-60" max="0" value="-30" data-output="sensitivity" /><output id="sensitivity">-30 dB</output></div></div><div class="settings-card"><h2>Тестирование</h2><button class="secondary" data-toast="Тест микрофона запущен">Тест микрофона</button> <button class="secondary" data-toast="Воспроизводим тестовый звук">Воспроизвести</button></div>`;
   }
@@ -1049,6 +1060,17 @@ document.addEventListener("click", (event) => {
   const typeButton = event.target.closest("[data-type-button]");
   if (typeButton) { $$('[data-type-button]').forEach((item) => item.classList.toggle("active", item === typeButton)); return; }
 
+  const messageTest = event.target.closest("[data-message-test]");
+  if (messageTest) {
+    showMessage({
+      type: messageTest.dataset.messageTest,
+      title: messageTest.dataset.messageTitle,
+      text: messageTest.dataset.messageText,
+      duration: 4200,
+    });
+    return;
+  }
+
   const stateButton = event.target.closest("[data-state]");
   if (stateButton) {
     stateButton.classList.toggle("off");
@@ -1090,7 +1112,7 @@ document.addEventListener("submit", (event) => {
   if (event.target.id === "friendForm") {
     const value = $("#friendName").value.trim();
     if (value) {
-      showMessage({ type: "success", title: "Запрос отправлен", text: `Приглашение пользователю «${value}» успешно отправлено.`, duration: 4200 });
+      showMessage({ type: "success", title: "Запрос в друзья отправлен", text: `Приглашение пользователю «${value}» успешно отправлено.`, duration: 4200 });
       $("#friendName").value = "";
     } else {
       showMessage({ type: "warning", title: "Не удалось отправить запрос", text: "Введите точное имя пользователя.", duration: 4000 });
