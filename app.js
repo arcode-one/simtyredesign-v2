@@ -35,6 +35,8 @@ const state = {
   permissionAddMenu: false,
   customPermissionRole: false,
   mobileSettingsView: false,
+  selectedMessage: null,
+  replyingTo: null,
   modal: null,
   modalParent: null,
 };
@@ -167,10 +169,34 @@ function renderFriends() {
     </div>`;
 }
 
-function renderMessages(list) {
-  return list.map((message) => `
-    <article class="message"><span class="avatar ${message.tone}">${message.initials}</span><div><div class="message-meta"><strong>${message.name}</strong><time>${message.time}</time></div><p>${message.text}</p></div></article>
-  `).join("");
+function messageKeyForView() {
+  return state.view === "channel" ? "channel" : state.view === "favorite" ? "favorite" : "dm";
+}
+
+function clearMessageInteraction() {
+  state.selectedMessage = null;
+  state.replyingTo = null;
+}
+
+function renderMessages(list, key) {
+  return list.map((message, index) => {
+    const selected = state.selectedMessage?.key === key && state.selectedMessage.index === index;
+    return `
+    <article class="message ${selected ? "selected" : ""} ${message.pinned ? "pinned" : ""}" data-message-index="${index}" data-message-key="${key}" tabindex="0" role="button" aria-label="Выбрать сообщение от ${escapeHTML(message.name)}" aria-pressed="${selected}">
+      <span class="avatar ${message.tone}">${message.initials}</span>
+      <div class="message-content">
+        ${message.reply ? `<div class="message-reply-reference">${icon("reply")}<span>Ответ для <strong>${message.reply.name}</strong></span><q>${message.reply.text}</q></div>` : ""}
+        <div class="message-meta"><strong>${message.name}</strong><time>${message.time}</time>${message.pinned ? `<span class="message-pin" title="Закреплено">${icon("pin")}</span>` : ""}</div>
+        <p>${message.text}</p>
+      </div>
+      ${selected ? `<div class="message-actions" role="toolbar" aria-label="Действия с сообщением">
+        <button type="button" data-message-action="reply" aria-label="Ответить" title="Ответить">${icon("reply")}</button>
+        <button type="button" data-message-action="edit" aria-label="Редактировать" title="Редактировать">${icon("edit")}</button>
+        <button type="button" data-message-action="pin" aria-label="${message.pinned ? "Открепить" : "Закрепить"}" title="${message.pinned ? "Открепить" : "Закрепить"}">${icon("pin")}</button>
+        <button class="danger" type="button" data-message-action="delete" aria-label="Удалить" title="Удалить">${icon("trash")}</button>
+      </div>` : ""}
+    </article>`;
+  }).join("");
 }
 
 function renderChat(type) {
@@ -181,7 +207,7 @@ function renderChat(type) {
     <div class="chat">
       <div class="channel-intro"><div class="empty-symbol">${icon(isChannel ? "hash" : type === "favorite" ? "bookmark" : "chat")}</div><h2>${isChannel ? "# Основной" : name}</h2><p>${type === "favorite" ? "Ваше личное пространство для сообщений и файлов." : isChannel ? "Здесь начинается история этого канала." : `Начало беседы с пользователем ${name}.`}</p></div>
       <div class="date-line"><span>Сегодня</span></div>
-      <div class="messages" id="messages">${renderMessages(list)}</div>
+      <div class="messages" id="messages">${renderMessages(list, type)}</div>
     </div>`;
 }
 
@@ -198,8 +224,18 @@ function renderComposer() {
   composer.classList.toggle("hidden", !show);
   if (!show) return;
   const input = $("#messageInput");
+  const replyPreview = $("#replyPreview");
   const compact = window.matchMedia("(max-width: 900px)").matches;
-  input.placeholder = state.view === "channel" && !compact ? "Написать сообщение в #Основной" : "Написать сообщение...";
+  const reply = state.replyingTo;
+  composer.classList.toggle("replying", Boolean(reply));
+  replyPreview.classList.toggle("active", Boolean(reply));
+  replyPreview.innerHTML = reply ? `
+    <span class="reply-preview-icon">${icon("reply")}</span>
+    <span class="reply-preview-avatar avatar ${reply.tone}">${reply.initials}</span>
+    <span class="reply-preview-copy"><span>Ответ для <strong>${reply.name}</strong></span><small>${reply.text}</small></span>
+    <button class="reply-preview-close" type="button" data-message-action="cancel-reply" aria-label="Отменить ответ" title="Отменить ответ">${icon("close")}</button>
+  ` : "";
+  input.placeholder = reply ? `Ответ для ${reply.name}` : state.view === "channel" && !compact ? "Написать сообщение в #Основной" : "Написать сообщение...";
 }
 
 function renderDrawer() {
@@ -474,6 +510,7 @@ function closeModal() {
 document.addEventListener("click", (event) => {
   const space = event.target.closest("[data-space]");
   if (space) {
+    clearMessageInteraction();
     state.space = space.dataset.space;
     state.view = "landing";
     state.selectedChannel = null;
@@ -487,6 +524,7 @@ document.addEventListener("click", (event) => {
 
   const view = event.target.closest("[data-view]");
   if (view) {
+    clearMessageInteraction();
     state.space = "home";
     state.view = view.dataset.view;
     state.infoOpen = false;
@@ -498,6 +536,7 @@ document.addEventListener("click", (event) => {
 
   const dm = event.target.closest("[data-dm]");
   if (dm) {
+    clearMessageInteraction();
     state.space = "home";
     state.view = "dm";
     state.selectedDM = dm.dataset.dm;
@@ -509,12 +548,67 @@ document.addEventListener("click", (event) => {
 
   const channel = event.target.closest("[data-channel]");
   if (channel && !event.target.closest("[data-modal]")) {
+    clearMessageInteraction();
     state.space = "server";
     state.view = "channel";
     state.selectedChannel = channel.dataset.channel;
     state.notificationMenu = false;
     state.notificationMuteMenu = false;
     renderApp();
+    return;
+  }
+
+  const messageActionButton = event.target.closest("[data-message-action]");
+  if (messageActionButton) {
+    const messageAction = messageActionButton.dataset.messageAction;
+    if (messageAction === "cancel-reply") {
+      state.replyingTo = null;
+      renderComposer();
+      $("#messageInput").focus();
+      return;
+    }
+
+    const messageElement = messageActionButton.closest("[data-message-index]");
+    const key = messageElement?.dataset.messageKey || messageKeyForView();
+    const index = Number(messageElement?.dataset.messageIndex);
+    const message = messages[key]?.[index];
+    if (!message) return;
+
+    if (messageAction === "reply") {
+      state.replyingTo = { key, index, name: message.name, initials: message.initials, tone: message.tone, text: message.text };
+      state.selectedMessage = null;
+      renderMain();
+      renderComposer();
+      requestAnimationFrame(() => $("#messageInput").focus());
+      return;
+    }
+    if (messageAction === "edit") {
+      showToast(message.name === "ArCode" ? "Редактирование будет доступно в следующей версии" : "Можно редактировать только свои сообщения");
+      return;
+    }
+    if (messageAction === "pin") {
+      message.pinned = !message.pinned;
+      renderMain();
+      showToast(message.pinned ? "Сообщение закреплено" : "Сообщение откреплено");
+      return;
+    }
+    if (messageAction === "delete") {
+      messages[key].splice(index, 1);
+      state.selectedMessage = null;
+      if (state.replyingTo?.key === key && state.replyingTo.index === index) state.replyingTo = null;
+      renderMain();
+      renderComposer();
+      showToast("Сообщение удалено");
+      return;
+    }
+  }
+
+  const messageElement = event.target.closest("[data-message-index]");
+  if (messageElement) {
+    const selected = { key: messageElement.dataset.messageKey, index: Number(messageElement.dataset.messageIndex) };
+    const alreadySelected = state.selectedMessage?.key === selected.key && state.selectedMessage.index === selected.index;
+    state.selectedMessage = alreadySelected ? null : selected;
+    renderMain();
     return;
   }
 
@@ -591,6 +685,7 @@ document.addEventListener("click", (event) => {
   if (action === "info-close") { state.infoOpen = false; renderDrawer(); return; }
   if (action === "mobile-menu") { $("#app").classList.add("mobile-open"); return; }
   if (action === "mobile-back") {
+    clearMessageInteraction();
     state.view = "landing";
     state.infoOpen = false;
     state.notificationMenu = false;
@@ -778,6 +873,10 @@ document.addEventListener("click", (event) => {
     state.permissionAddMenu = false;
     renderModal();
   }
+  if (state.selectedMessage && !event.target.closest(".message")) {
+    state.selectedMessage = null;
+    renderMain();
+  }
 });
 
 document.addEventListener("submit", (event) => {
@@ -815,10 +914,14 @@ document.addEventListener("submit", (event) => {
     const text = input.value.trim();
     if (!text) return;
     const key = state.view === "channel" ? "channel" : state.view === "favorite" ? "favorite" : "dm";
-    messages[key].push({ name: "ArCode", initials: "A", tone: "", time: "только что", text: escapeHTML(text) });
+    const reply = state.replyingTo ? { name: state.replyingTo.name, text: state.replyingTo.text } : null;
+    messages[key].push({ name: "ArCode", initials: "A", tone: "", time: "только что", text: escapeHTML(text), reply });
+    state.replyingTo = null;
+    state.selectedMessage = null;
     input.value = "";
     input.style.height = "auto";
     renderMain();
+    renderComposer();
     $("#mainView").scrollTop = $("#mainView").scrollHeight;
   }
 });
@@ -837,7 +940,14 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    if (state.notificationMenu) {
+    if (state.replyingTo) {
+      state.replyingTo = null;
+      renderComposer();
+      $("#messageInput").focus();
+    } else if (state.selectedMessage) {
+      state.selectedMessage = null;
+      renderMain();
+    } else if (state.notificationMenu) {
       state.notificationMenu = false;
       state.notificationMuteMenu = false;
       renderHeader();
@@ -856,6 +966,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey && event.target.id === "messageInput") {
     event.preventDefault();
     $("#composer").requestSubmit();
+  }
+  if (["Enter", " "].includes(event.key) && event.target.matches("[data-message-index]") && !event.target.closest("button")) {
+    event.preventDefault();
+    event.target.click();
   }
 });
 

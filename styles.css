@@ -764,14 +764,86 @@ svg {
   margin-inline: 14px;
   padding: 7px 8px;
   border-radius: 12px;
+  cursor: pointer;
+  transition: background var(--ease), box-shadow var(--ease), transform var(--ease);
 }
 
 .message:hover { background: rgba(255, 255, 255, .035); }
+.message:focus-visible { outline: 2px solid rgba(121, 131, 245, .72); outline-offset: -2px; }
+.message.selected {
+  background: rgba(78, 80, 88, .62);
+  box-shadow: inset 3px 0 0 var(--blurple), 0 8px 26px rgba(0, 0, 0, .08);
+}
+.message-content { min-width: 0; }
 .message .avatar { width: 40px; height: 40px; }
 .message-meta { display: flex; align-items: baseline; gap: 7px; }
 .message-meta strong { font-weight: 700; }
 .message-meta time { color: var(--dim); font-size: 10px; }
 .message p { margin: 2px 0 0; color: var(--text-2); line-height: 1.5; }
+
+.message-actions {
+  position: absolute;
+  top: -18px;
+  right: 8px;
+  z-index: 8;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 11px;
+  background: rgba(30, 31, 34, .96);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .38), 0 1px 0 rgba(255, 255, 255, .035) inset;
+  backdrop-filter: blur(14px);
+  animation: message-actions-in 160ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.message-actions button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 7px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--ease), background var(--ease);
+}
+
+.message-actions button:hover { color: #fff; background: var(--surface-2); }
+.message-actions button.danger:hover { color: #ff7074; }
+.message-actions svg { display: block; width: 17px; height: 17px; }
+.message-actions button[data-message-action="pin"] svg,
+.message-pin svg { transform: rotate(45deg); }
+
+.message-reply-reference {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: -1px 0 4px;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.message-reply-reference::before {
+  content: "";
+  width: 2px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--blurple-light);
+}
+
+.message-reply-reference svg { flex: 0 0 13px; width: 13px; height: 13px; color: var(--blurple-light); }
+.message-reply-reference span { flex: 0 0 auto; }
+.message-reply-reference strong { color: var(--muted); }
+.message-reply-reference q { overflow: hidden; min-width: 0; color: var(--dim); text-overflow: ellipsis; white-space: nowrap; }
+.message-reply-reference q::before,
+.message-reply-reference q::after { content: none; }
+.message-pin { display: inline-flex; color: var(--blurple-light); }
+.message-pin svg { width: 12px; height: 12px; }
 
 .date-line {
   display: flex;
@@ -789,14 +861,58 @@ svg {
 
 .composer {
   position: relative;
-  display: flex;
-  align-items: flex-end;
+  display: grid;
   gap: 8px;
   padding: 0 14px 8px;
   background: linear-gradient(0deg, var(--main) 72%, rgba(49, 51, 56, 0));
 }
 
 .composer.hidden { display: none; }
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.reply-preview {
+  display: none;
+  grid-template-columns: 28px 26px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 7px 9px 7px 11px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-left: 3px solid var(--blurple);
+  border-radius: 11px;
+  color: var(--muted);
+  background: rgba(56, 58, 64, .96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12), 0 1px 0 rgba(255, 255, 255, .025) inset;
+}
+
+.reply-preview.active { display: grid; animation: reply-preview-in 190ms cubic-bezier(.2, .8, .2, 1) both; }
+.reply-preview-icon { display: grid; place-items: center; color: var(--blurple-light); }
+.reply-preview-icon svg { width: 17px; height: 17px; }
+.reply-preview-avatar.avatar { width: 24px; height: 24px; font-size: 10px; }
+.reply-preview-copy { display: grid; min-width: 0; line-height: 1.25; }
+.reply-preview-copy > span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.reply-preview-copy strong { color: var(--text); font-weight: 700; }
+.reply-preview-copy small { overflow: hidden; color: var(--dim); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.reply-preview-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 7px;
+  color: var(--dim);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--ease), background var(--ease), transform var(--ease);
+}
+.reply-preview-close:hover { color: #fff; background: var(--surface-2); transform: rotate(4deg); }
+.reply-preview-close svg { width: 16px; height: 16px; }
 
 .composer-side,
 .voice-button {
@@ -1545,6 +1661,8 @@ input[type="range"] { width: 100%; accent-color: var(--blurple); }
 @keyframes menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(218, 55, 60, .12); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes message-actions-in { from { opacity: 0; transform: translateY(5px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes reply-preview-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 1120px) {
   .app.has-drawer { grid-template-columns: 72px 304px minmax(0, 1fr) 292px; }
@@ -1635,6 +1753,9 @@ input[type="range"] { width: 100%; accent-color: var(--blurple); }
   .message .avatar { width: 34px; height: 34px; }
 
   .composer { gap: 5px; padding: 0 6px calc(6px + env(safe-area-inset-bottom)); }
+  .composer-row { gap: 5px; }
+  .reply-preview { grid-template-columns: 22px 24px minmax(0, 1fr) 32px; gap: 7px; min-height: 42px; padding: 6px 7px 6px 9px; border-radius: 10px; }
+  .reply-preview-icon svg { width: 15px; height: 15px; }
   .composer-side,
   .voice-button { flex-basis: 60px; width: 60px; height: 60px; border-radius: 10px; }
   .composer-input { min-height: 60px; border-radius: 10px; }
