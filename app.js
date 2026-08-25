@@ -147,7 +147,7 @@ function renderSidebar() {
       <div class="section-title"><span>Личные сообщения</span></div>
       ${directMessages.length ? `<div class="dm-list">${directMessages.map((dm) => `
         <button class="dm-row ${state.view === "dm" && state.selectedDM === dm.id ? "active" : ""}" data-dm="${dm.id}">
-          <span class="avatar blue">${dm.initials}<span class="online"></span></span>
+          <span class="avatar ${dm.tone || "blue"}">${dm.initials}</span>
           <span class="dm-copy"><strong>${dm.name}</strong><small>Новая беседа</small></span>
         </button>`).join("")}</div>` : `<div class="empty-list-note">Пока нет бесед</div>`}
     `;

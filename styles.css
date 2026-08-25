@@ -190,6 +190,7 @@ svg {
 
 .sidebar-head {
   position: relative;
+  grid-row: 1;
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -228,6 +229,7 @@ svg {
 .server-title-button.open svg { transform: rotate(180deg); }
 
 .sidebar-body {
+  grid-row: 2;
   min-height: 0;
   padding: 10px 8px 18px;
   overflow-y: auto;
@@ -405,6 +407,7 @@ svg {
 .server-menu svg { width: 18px; height: 18px; }
 
 .user-panel {
+  grid-row: 4;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -434,7 +437,7 @@ svg {
 .user-name small { color: var(--dim); font-size: 10px; }
 .user-actions { display: flex; }
 
-.active-call-dock-host { display: none; min-width: 0; padding: 0 8px 8px; }
+.active-call-dock-host { grid-row: 3; display: none; min-width: 0; padding: 0 8px 8px; }
 .active-call-dock-host.open { display: block; }
 .active-call-dock {
   padding: 10px;
