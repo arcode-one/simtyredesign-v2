@@ -1784,8 +1784,16 @@ input[type="range"] { width: 100%; accent-color: var(--blurple); }
     font-weight: 700;
   }
   .mobile-notification-enable:hover { background: var(--blurple-hover); }
-  .mobile-notification-later { color: var(--muted); background: transparent; }
-  .mobile-notification-later:hover { color: #fff; background: rgba(255, 255, 255, .055); }
+  .mobile-notification-later {
+    color: var(--text-2);
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025);
+  }
+  .mobile-notification-later:hover {
+    color: #fff;
+    background: var(--surface-3);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07);
+  }
 
   .app,
   .app.has-drawer {
