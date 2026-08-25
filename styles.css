@@ -1042,6 +1042,8 @@ svg {
 
 .composer-side:hover,
 .voice-button:hover { color: #fff; background: var(--surface-2); }
+.composer-side.has-file { position: relative; color: #fff; background: rgba(88, 101, 242, .34); box-shadow: inset 0 0 0 1px rgba(121, 131, 245, .28); }
+.composer-side.has-file::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border: 2px solid var(--surface); border-radius: 50%; background: #4dd798; }
 .voice-button.recording { color: #fff; background: var(--red); animation: pulse 1.4s ease infinite; }
 .voice-button.send-submit {
   color: #fff;
@@ -1609,6 +1611,9 @@ svg {
 }
 .avatar-upload-preview:hover { border-color: rgba(121,131,245,.5); background: linear-gradient(145deg, #333640, #23252b); }
 .avatar-upload-preview > svg { width: 25px; height: 25px; }
+.avatar-upload-preview.has-image { background-position: center; background-size: cover; }
+.avatar-upload-preview.has-image:hover { background-position: center; background-size: cover; }
+.avatar-upload-preview.has-image > svg:first-child { opacity: 0; }
 .avatar-camera-badge {
   position: absolute;
   right: -1px;

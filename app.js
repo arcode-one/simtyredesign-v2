@@ -17,6 +17,7 @@ const state = {
   notificationMenu: false,
   notificationMuteMenu: false,
   notificationMode: "mentions",
+  notificationTemporaryLabel: null,
   auditMenu: false,
   auditFilter: "all",
   userSettingsTab: "profile",
@@ -56,6 +57,11 @@ const state = {
   callCameraEnabled: false,
   callSharing: false,
   callDeviceMenu: null,
+  callDevices: {
+    mic: "Микрофон по умолчанию",
+    sound: "Динамики по умолчанию",
+    camera: "Камера по умолчанию",
+  },
   modal: null,
   modalParent: null,
 };
@@ -211,16 +217,18 @@ function renderHeader() {
   }
 
   if (state.view === "channel") {
+    const notificationsOff = state.notificationMode === "off" || state.notificationMode === "temporary";
+    const notificationLabel = state.notificationMode === "temporary" ? `Уведомления отключены на ${state.notificationTemporaryLabel}` : state.notificationMode === "off" ? "Уведомления отключены" : "Уведомления канала";
     head.innerHTML = `
       <div class="head-start">${mobile}${icon("hash")}<strong>Основной</strong></div>
-      <div class="head-end"><div class="notification-control"><button class="icon-button ${state.notificationMenu ? "active" : ""}" data-action="notifications" aria-label="Уведомления канала" aria-expanded="${state.notificationMenu}">${icon("at")}</button>${renderNotificationMenu()}</div><button class="icon-button" data-modal="channel-settings" aria-label="Настройки канала">${icon("settings")}</button></div>`;
+      <div class="head-end"><div class="notification-control"><button class="icon-button ${state.notificationMenu ? "active" : ""} ${notificationsOff ? "off" : ""}" data-action="notifications" aria-label="${notificationLabel}" title="${notificationLabel}" aria-expanded="${state.notificationMenu}">${icon("at")}</button>${renderNotificationMenu()}</div><button class="icon-button" data-modal="channel-settings" aria-label="Настройки канала">${icon("settings")}</button></div>`;
     return;
   }
 
   if (state.view === "dm") {
     const dm = directMessages.find((item) => item.id === state.selectedDM);
     const inCall = state.activeCall && state.selectedDM === "dm-friend-test";
-    head.innerHTML = `<div class="head-start">${mobile}${icon("chat")}<strong>${dm?.name || "Беседа"}</strong>${inCall ? `<span class="head-call-status"><i></i>В звонке</span>` : ""}</div><div class="head-end">${inCall ? `<button class="icon-button active" data-action="open-call" aria-label="Вернуться к звонку" title="Вернуться к звонку">${icon("phone")}</button>` : ""}<button class="icon-button" data-action="info" aria-label="Информация">${icon("at")}</button><button class="icon-button" data-toast="Настройки беседы">${icon("settings")}</button></div>`;
+    head.innerHTML = `<div class="head-start">${mobile}${icon("chat")}<strong>${dm?.name || "Беседа"}</strong>${inCall ? `<span class="head-call-status"><i></i>В звонке</span>` : ""}</div><div class="head-end">${inCall ? `<button class="icon-button active" data-action="open-call" aria-label="Вернуться к звонку" title="Вернуться к звонку">${icon("phone")}</button>` : ""}<button class="icon-button" data-action="info" aria-label="Информация">${icon("at")}</button><button class="icon-button" data-action="info" aria-label="Настройки беседы">${icon("settings")}</button></div>`;
     return;
   }
 
@@ -373,7 +381,7 @@ function renderCallDeviceMenu(type) {
   };
   return `<div class="call-device-menu" role="menu" aria-label="Выбор устройства">
     <span class="call-device-menu-title">Устройство</span>
-    ${labels[type].map((label, index) => `<button type="button" data-call-device="${escapeHTML(label)}"><span>${escapeHTML(label)}</span>${index === 0 ? icon("check") : ""}</button>`).join("")}
+    ${labels[type].map((label) => `<button type="button" data-call-device="${escapeHTML(label)}" data-call-device-type="${type}"><span>${escapeHTML(label)}</span>${state.callDevices[type] === label ? icon("check") : ""}</button>`).join("")}
   </div>`;
 }
 
@@ -628,7 +636,7 @@ function renderUserSettingsView() {
     return `<h1>Устройства</h1><div class="page-title"><p>Устройства, на которых выполнен вход в аккаунт.</p></div><div class="settings-card"><div class="device-row"><span class="row-icon">${icon("monitor")}</span><span class="row-copy"><strong>Chrome · Windows</strong><small>Активность: сейчас</small></span><span class="current">Текущий</span></div><div class="device-row"><span class="row-icon">${icon("monitor")}</span><span class="row-copy"><strong>Safari · iOS</strong><small>Последняя активность сегодня</small></span><button class="secondary session-end" data-toast="Завершение сеанса требует подтверждения">Завершить</button></div><div class="device-row"><span class="row-icon">${icon("monitor")}</span><span class="row-copy"><strong>Safari · macOS</strong><small>Последняя активность вчера</small></span><button class="secondary session-end" data-toast="Завершение сеанса требует подтверждения">Завершить</button></div></div><div class="settings-actions"><button class="danger" data-toast="Завершение остальных сеансов требует подтверждения">Завершить остальные</button></div>`;
   }
 
-  return `<h1>Профиль</h1><div class="settings-card avatar-upload-card"><button class="avatar-upload-preview" data-toast="Выберите JPG или PNG" aria-label="Загрузить изображение профиля">${icon("camera")}<span class="avatar-camera-badge">${icon("camera")}</span></button><div class="avatar-upload-copy"><h2>Аватар</h2><button class="avatar-upload-link" data-toast="Выберите JPG или PNG">Загрузить изображение</button><p class="hint">JPG или PNG. Максимум 5MB.</p></div></div><form id="userProfileForm"><div class="settings-card"><h2>Информация профиля</h2><div class="field"><label>Имя пользователя</label><input class="input" value="ArCode" /></div><div class="field"><label>Отображаемое имя</label><input class="input" value="ArCode" /></div><div class="settings-actions"><button type="reset" class="secondary">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
+  return `<h1>Профиль</h1><div class="settings-card avatar-upload-card"><button class="avatar-upload-preview" data-action="avatar-upload" aria-label="Загрузить изображение профиля">${icon("camera")}<span class="avatar-camera-badge">${icon("camera")}</span></button><div class="avatar-upload-copy"><h2>Аватар</h2><button class="avatar-upload-link" data-action="avatar-upload">Загрузить изображение</button><p class="hint">JPG или PNG. Максимум 5MB.</p></div></div><form id="userProfileForm"><div class="settings-card"><h2>Информация профиля</h2><div class="field"><label>Имя пользователя</label><input class="input" value="ArCode" /></div><div class="field"><label>Отображаемое имя</label><input class="input" value="ArCode" /></div><div class="settings-actions"><button type="reset" class="secondary">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
 }
 
 function renderServerSettings() {
@@ -677,7 +685,7 @@ function renderServerSettingsView() {
     const selectedAudit = auditFilters.find(([id]) => id === state.auditFilter) || auditFilters[0];
     return `<div class="audit-heading"><div><h1>Журнал аудита</h1><strong>0 событий</strong></div><div class="audit-filter"><button class="audit-filter-button ${state.auditMenu ? "open" : ""}" data-action="audit-menu" aria-expanded="${state.auditMenu}">${icon(selectedAudit[1])}<span>${selectedAudit[2]}</span>${icon("chevron")}</button>${state.auditMenu ? `<div class="audit-dropdown" role="menu" aria-label="Фильтр журнала">${auditFilters.map(([id, iconName, label]) => `<button class="${state.auditFilter === id ? "selected" : ""}" data-audit-filter="${id}">${icon(iconName)}<span>${label}</span>${state.auditFilter === id ? icon("check") : ""}</button>`).join("")}</div>` : ""}</div></div><div class="audit-error">Не удалось загрузить журнал аудита</div><div class="empty-state audit-empty"><div class="empty-state-inner"><div class="empty-symbol">${icon("shield")}</div><h2>Нет записей в журнале</h2><p>События выбранной категории появятся здесь.</p></div></div>`;
   }
-  return `<h1>Профиль сервера</h1><div class="settings-card avatar-upload-card"><button class="avatar-upload-preview" data-toast="Выберите JPG или PNG" aria-label="Загрузить изображение сервера">${icon("camera")}<span class="avatar-camera-badge">${icon("camera")}</span></button><div class="avatar-upload-copy"><h2>Аватар</h2><button class="avatar-upload-link" data-toast="Выберите JPG или PNG">Загрузить изображение</button><p class="hint">JPG или PNG. Максимум 5MB.</p></div></div><form id="serverProfileForm"><div class="settings-card"><h2>Информация о сервере</h2><div class="field"><label>Имя сервера</label><input class="input" value="Simty Upgrade" /></div><div class="field"><label>Описание</label><textarea class="textarea" placeholder="Введите описание сервера"></textarea><p class="hint">Описание сервера, которое видят участники.</p></div><div class="settings-actions"><button class="secondary" type="reset">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
+  return `<h1>Профиль сервера</h1><div class="settings-card avatar-upload-card"><button class="avatar-upload-preview" data-action="avatar-upload" aria-label="Загрузить изображение сервера">${icon("camera")}<span class="avatar-camera-badge">${icon("camera")}</span></button><div class="avatar-upload-copy"><h2>Аватар</h2><button class="avatar-upload-link" data-action="avatar-upload">Загрузить изображение</button><p class="hint">JPG или PNG. Максимум 5MB.</p></div></div><form id="serverProfileForm"><div class="settings-card"><h2>Информация о сервере</h2><div class="field"><label>Имя сервера</label><input class="input" value="Simty Upgrade" /></div><div class="field"><label>Описание</label><textarea class="textarea" placeholder="Введите описание сервера"></textarea><p class="hint">Описание сервера, которое видят участники.</p></div><div class="settings-actions"><button class="secondary" type="reset">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
 }
 
 function renderChannelSettings() {
@@ -688,7 +696,7 @@ function renderChannelSettings() {
   ];
   if (state.customPermissionRole) subjects.push(["new-role", "role", state.roleNames["new-role"] || "Новая роль", "Роль сервера"]);
   const selected = subjects.find(([id]) => id === state.selectedPermissionSubject) || subjects[0];
-  const view = state.channelSettingsTab === "permissions" ? `<div class="channel-permissions"><aside class="permission-subjects"><div class="permission-add-wrap"><button class="primary add-subject" data-action="permission-add" aria-expanded="${state.permissionAddMenu}">${icon("plus")}Добавить</button>${state.permissionAddMenu ? `<div class="permission-add-menu" role="menu"><span>Роли</span><button data-action="add-new-role">${icon("role")}<strong>${escapeHTML(state.roleNames["new-role"] || "Новая роль")}</strong></button></div>` : ""}</div><div class="subject-list">${subjects.map(([id, iconName, label, caption]) => `<button class="subject-row ${state.selectedPermissionSubject === id ? "active" : ""}" data-permission-subject="${id}"><span class="row-icon">${icon(iconName)}</span><span><strong>${label}</strong><small>${caption}</small></span></button>`).join("")}</div></aside><section class="permission-detail"><div class="permission-detail-head"><div><span class="eyebrow">Разрешения</span><h1>${selected[2]}</h1><p>${selected[3]} · канал #Основной</p></div><span class="subject-badge">${icon(selected[1])}</span></div>${renderPermissionMatrix("channel")}<div class="sticky-actions"><button class="secondary" data-toast="Изменения разрешений сброшены">Сбросить</button><button class="primary" data-toast="Разрешения канала сохранены">${icon("check")}Сохранить</button></div></section></div>` : `<h1>Информация о канале</h1><form id="channelForm"><div class="settings-card"><div class="field"><label>Имя канала</label><input class="input" value="Основной" /></div><div class="field"><label>Описание</label><textarea class="textarea" placeholder="Введите описание канала"></textarea><p class="hint">Описание канала, которое видят участники.</p></div><div class="settings-actions"><button class="secondary" type="reset">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
+  const view = state.channelSettingsTab === "permissions" ? `<div class="channel-permissions"><aside class="permission-subjects"><div class="permission-add-wrap"><button class="primary add-subject" data-action="permission-add" aria-expanded="${state.permissionAddMenu}">${icon("plus")}Добавить</button>${state.permissionAddMenu ? `<div class="permission-add-menu" role="menu"><span>Роли</span><button data-action="add-new-role">${icon("role")}<strong>${escapeHTML(state.roleNames["new-role"] || "Новая роль")}</strong></button></div>` : ""}</div><div class="subject-list">${subjects.map(([id, iconName, label, caption]) => `<button class="subject-row ${state.selectedPermissionSubject === id ? "active" : ""}" data-permission-subject="${id}"><span class="row-icon">${icon(iconName)}</span><span><strong>${label}</strong><small>${caption}</small></span></button>`).join("")}</div></aside><section class="permission-detail"><div class="permission-detail-head"><div><span class="eyebrow">Разрешения</span><h1>${selected[2]}</h1><p>${selected[3]} · канал #Основной</p></div><span class="subject-badge">${icon(selected[1])}</span></div>${renderPermissionMatrix("channel")}<div class="sticky-actions"><button class="secondary" data-action="reset-channel-permissions">Сбросить</button><button class="primary" data-action="save-channel-permissions">${icon("check")}Сохранить</button></div></section></div>` : `<h1>Информация о канале</h1><form id="channelForm"><div class="settings-card"><div class="field"><label>Имя канала</label><input class="input" value="Основной" /></div><div class="field"><label>Описание</label><textarea class="textarea" placeholder="Введите описание канала"></textarea><p class="hint">Описание канала, которое видят участники.</p></div><div class="settings-actions"><button class="secondary" type="reset">Сбросить</button><button class="primary" type="submit">Сохранить изменения</button></div></div></form>`;
   const activeTitle = tabs.find(([id]) => id === state.channelSettingsTab)?.[2] || "Информация";
   return modalShell(state.mobileSettingsView ? activeTitle : "Настройки канала", state.mobileSettingsView ? "" : "Канал «Основной».", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view ${state.channelSettingsTab === "permissions" ? "permission-settings-view" : ""}">${view}</section></div>`, "", true);
 }
@@ -825,8 +833,8 @@ document.addEventListener("click", (event) => {
     state.mobileNotificationPromptOpen = false;
     if (mobileNotificationAction === "enable") {
       state.notificationMode = "all";
+      state.notificationTemporaryLabel = null;
       renderHeader();
-      showToast("Уведомления включены");
     }
     renderMobileNotificationPrompt();
     return;
@@ -957,7 +965,6 @@ document.addEventListener("click", (event) => {
       if (message.pinned) messages[key].splice(index + 1, 0, { id: `${key}-pin-${Date.now()}`, type: "event", event: "pin", name: "ArCode", time: "только что" });
       state.selectedMessage = null;
       renderMain();
-      showToast(message.pinned ? "Сообщение закреплено" : "Сообщение откреплено");
       return;
     }
     if (messageAction === "delete") {
@@ -967,7 +974,6 @@ document.addEventListener("click", (event) => {
       if (state.editingMessage?.key === key && state.editingMessage.targetId === message.id) state.editingMessage = null;
       renderMain();
       renderComposer();
-      showToast("Сообщение удалено");
       return;
     }
   }
@@ -998,10 +1004,8 @@ document.addEventListener("click", (event) => {
       if (!wasActive) messages.dm.push({ id: `dm-call-${Date.now()}`, type: "event", event: "call-start", name: "Test user 7K3IAI", time: "только что" });
       renderApp();
       renderModal();
-      showMessage({ type: "success", title: "Звонок принят", text: "Вы подключились к звонку." });
     } else {
       renderModal();
-      showMessage({ type: "info", title: "Звонок завершён", text: "Входящий звонок отклонён." });
     }
     return;
   }
@@ -1025,7 +1029,6 @@ document.addEventListener("click", (event) => {
       state.modal = state.modalParent || "server-settings";
       state.modalParent = null;
       renderModal();
-      showToast("Роль удалена в прототипе");
       return;
     }
     const labels = { "delete-channel": "Удаление канала подтверждено в прототипе", "delete-server": "Удаление сервера подтверждено в прототипе", logout: "Выход подтверждён в прототипе", "kick-member": "Участник исключён в прототипе", "ban-member": "Участник заблокирован в прототипе" };
@@ -1037,6 +1040,38 @@ document.addEventListener("click", (event) => {
   }
 
   const action = event.target.closest("[data-action]")?.dataset.action;
+  if (action === "attachment" || action === "avatar-upload") {
+    const picker = document.createElement("input");
+    picker.type = "file";
+    picker.accept = action === "avatar-upload" ? "image/jpeg,image/png" : "";
+    picker.addEventListener("change", () => {
+      const file = picker.files?.[0];
+      if (!file) return;
+      if (action === "attachment") {
+        const button = $("[data-action='attachment']");
+        button?.classList.add("has-file");
+        button?.setAttribute("aria-label", `Прикреплён файл: ${file.name}`);
+        button?.setAttribute("title", file.name);
+      } else {
+        const preview = $(".avatar-upload-preview");
+        if (preview) {
+          preview.classList.add("has-image");
+          preview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+        }
+      }
+    }, { once: true });
+    picker.click();
+    return;
+  }
+  if (action === "reset-channel-permissions") {
+    Object.keys(state.permissionStates).filter((key) => key.startsWith("channel:")).forEach((key) => delete state.permissionStates[key]);
+    renderModal();
+    return;
+  }
+  if (action === "save-channel-permissions") {
+    showMessage({ type: "success", title: "Разрешения сохранены", text: "Настройки канала обновлены." });
+    return;
+  }
   if (action === "open-call") {
     state.space = "home";
     state.view = "dm";
@@ -1077,7 +1112,6 @@ document.addEventListener("click", (event) => {
     state.callSharing = !state.callSharing;
     state.callDeviceMenu = null;
     renderMain();
-    showToast(state.callSharing ? "Демонстрация экрана включена" : "Демонстрация экрана остановлена");
     return;
   }
   if (action?.startsWith("call-device-")) {
@@ -1128,7 +1162,6 @@ document.addEventListener("click", (event) => {
     state.selectedPermissionSubject = "new-role";
     state.permissionAddMenu = false;
     renderModal();
-    showToast("Роль «Новая роль» добавлена в разрешения канала");
     return;
   }
   if (action === "info") { state.infoOpen = !state.infoOpen; renderDrawer(); return; }
@@ -1155,7 +1188,6 @@ document.addEventListener("click", (event) => {
     state.roleTab = "general";
     state.roleMemberPicker = false;
     renderModal();
-    showToast("Роль «Новая роль» создана в прототипе");
     return;
   }
   if (action === "role-member-picker") {
@@ -1167,20 +1199,17 @@ document.addEventListener("click", (event) => {
     state.roleMemberAdded = true;
     state.roleMemberPicker = false;
     renderModal();
-    showToast(`ArCode добавлен в роль «${state.roleNames[state.selectedRole]}»`);
     return;
   }
   if (action === "remove-role-member") {
     state.roleMemberAdded = false;
     renderModal();
-    showToast(`ArCode удалён из роли «${state.roleNames[state.selectedRole]}»`);
     return;
   }
   if (action === "save-role") {
     const input = $("#roleNameInput");
     if (input) state.roleNames[state.selectedRole] = input.value.trim() || state.roleNames[state.selectedRole];
     renderModal();
-    showToast("Изменения роли сохранены");
     return;
   }
   if (action === "reset-role-editor") {
@@ -1191,41 +1220,37 @@ document.addEventListener("click", (event) => {
       const input = $("#roleNameInput");
       if (input) input.value = state.roleNames[state.selectedRole];
     }
-    showToast("Изменения роли сброшены");
     return;
   }
   if (action === "refresh-applications") {
     const button = event.target.closest("[data-action='refresh-applications']");
     button.classList.add("spinning");
     setTimeout(() => button.classList.remove("spinning"), 520);
-    showToast("Список заявок обновлён");
     return;
   }
   if (action === "refresh-members") {
     const button = event.target.closest("[data-action='refresh-members']");
     button.classList.add("spinning");
     setTimeout(() => button.classList.remove("spinning"), 520);
-    showToast("Список участников обновлён");
     return;
   }
   if (action === "reset-role-permissions") {
     Object.keys(state.permissionStates).filter((key) => key.startsWith("role:")).forEach((key) => delete state.permissionStates[key]);
     renderModal();
-    showToast("Права роли сброшены");
     return;
   }
   if (action === "voice") {
     const button = event.target.closest("[data-action='voice']");
     button.classList.toggle("recording");
-    showToast(button.classList.contains("recording") ? "Запись голосового сообщения" : "Запись остановлена");
     return;
   }
 
-  const callDevice = event.target.closest("[data-call-device]")?.dataset.callDevice;
+  const callDeviceButton = event.target.closest("[data-call-device]");
+  const callDevice = callDeviceButton?.dataset.callDevice;
   if (callDevice) {
+    state.callDevices[callDeviceButton.dataset.callDeviceType] = callDevice;
     state.callDeviceMenu = null;
     renderMain();
-    showToast(`Выбрано устройство: ${callDevice}`);
     return;
   }
 
@@ -1276,12 +1301,6 @@ document.addEventListener("click", (event) => {
     if (action === "accept") {
       state.friendUsers.push(person);
       showMessage({ type: "success", title: "Запрос принят", text: `${person.name} теперь в списке друзей.` });
-    } else if (action === "reject") {
-      showMessage({ type: "info", title: "Запрос отклонён", text: `Запрос от пользователя ${person.name} удалён.` });
-    } else if (action === "cancel") {
-      showMessage({ type: "info", title: "Запрос отменён", text: `Приглашение для ${person.name} отозвано.` });
-    } else if (action === "remove") {
-      showMessage({ type: "info", title: "Друг удалён", text: `${person.name} удалён из списка друзей.` });
     }
     renderMain();
     return;
@@ -1308,20 +1327,20 @@ document.addEventListener("click", (event) => {
   const notificationMode = event.target.closest("[data-notification-mode]");
   if (notificationMode) {
     state.notificationMode = notificationMode.dataset.notificationMode;
+    state.notificationTemporaryLabel = null;
     state.notificationMenu = false;
     state.notificationMuteMenu = false;
     renderHeader();
-    showToast(state.notificationMode === "all" ? "Уведомления: все сообщения" : state.notificationMode === "mentions" ? "Уведомления: только упоминания" : "Уведомления отключены");
     return;
   }
 
   const notificationDuration = event.target.closest("[data-notification-duration]");
   if (notificationDuration) {
     state.notificationMode = "temporary";
+    state.notificationTemporaryLabel = notificationDuration.dataset.notificationDuration;
     state.notificationMenu = false;
     state.notificationMuteMenu = false;
     renderHeader();
-    showToast(`Уведомления отключены на ${notificationDuration.dataset.notificationDuration}`);
     return;
   }
 
@@ -1330,7 +1349,6 @@ document.addEventListener("click", (event) => {
     state.auditFilter = auditFilter.dataset.auditFilter;
     state.auditMenu = false;
     renderModal();
-    showToast("Фильтр журнала обновлён");
     return;
   }
 
@@ -1429,7 +1447,6 @@ document.addEventListener("submit", (event) => {
     state.space = "server";
     state.view = "landing";
     renderApp();
-    showToast("Сервер создан в прототипе");
   } else if (event.target.id === "createChannelForm") {
     closeModal();
     showToast("Канал создан в прототипе");
@@ -1463,7 +1480,6 @@ document.addEventListener("submit", (event) => {
       input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
       renderMain();
       renderComposer();
-      showToast(changed ? "Сообщение изменено" : "Изменений нет");
       return;
     }
 
