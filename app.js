@@ -37,6 +37,7 @@ const state = {
   mobileSettingsView: false,
   selectedMessage: null,
   replyingTo: null,
+  editingMessage: null,
   modal: null,
   modalParent: null,
 };
@@ -45,13 +46,12 @@ const directMessages = [];
 
 const messages = {
   favorite: [
-    { name: "ArCode", initials: "A", tone: "", time: "Сегодня, 12:14", text: "Сохранить референсы для нового интерфейса СИМТИ." },
-    { name: "ArCode", initials: "A", tone: "", time: "Сегодня, 12:16", text: "Проверить состояния кнопок, форм и модальных окон." },
+    { id: "favorite-1", name: "ArCode", initials: "A", tone: "", time: "Сегодня, 12:14", text: "Сохранить референсы для нового интерфейса СИМТИ." },
+    { id: "favorite-2", name: "ArCode", initials: "A", tone: "", time: "Сегодня, 12:16", text: "Проверить состояния кнопок, форм и модальных окон." },
   ],
   channel: [
-    { name: "ArCode", initials: "A", tone: "", time: "15:21", text: "Добро пожаловать в основной канал сервера." },
-    { name: "Мария", initials: "М", tone: "pink", time: "15:24", text: "Здесь можно обсуждать общие вопросы и делиться файлами." },
-    { name: "Илья", initials: "И", tone: "green", time: "15:27", text: "Новая тёмная тема выглядит заметно спокойнее и современнее." },
+    { id: "channel-1", name: "ArCode", initials: "A", tone: "", time: "15:21", text: "Добро пожаловать в основной канал сервера." },
+    { id: "channel-2", name: "Мария", initials: "М", tone: "pink", time: "15:24", text: "Здесь можно обсуждать общие вопросы и делиться файлами." },
   ],
   dm: [],
 };
@@ -174,20 +174,56 @@ function messageKeyForView() {
 }
 
 function clearMessageInteraction() {
+  if (state.editingMessage) {
+    const input = $("#messageInput");
+    if (input) input.value = state.editingMessage.draft || "";
+  }
   state.selectedMessage = null;
   state.replyingTo = null;
+  state.editingMessage = null;
+}
+
+function renderReplyReference(reply, key) {
+  const initials = reply.initials || reply.name.slice(0, 1).toUpperCase();
+  return `<button class="message-reply-reference" type="button" data-reply-target-id="${escapeHTML(reply.targetId || "")}" data-reply-target-key="${escapeHTML(key)}" aria-label="Перейти к сообщению пользователя ${escapeHTML(reply.name)}">
+    ${icon("reply")}
+    <span class="message-reply-avatar avatar ${reply.tone || ""}">${escapeHTML(initials)}</span>
+    <span class="message-reply-copy"><strong>${escapeHTML(reply.name)}</strong><q>${escapeHTML(reply.text)}</q></span>
+  </button>`;
+}
+
+function jumpToMessage(key, targetId) {
+  if (!targetId || !messages[key]?.some((message) => message.id === targetId)) {
+    showToast("Исходное сообщение больше недоступно");
+    return;
+  }
+
+  state.selectedMessage = null;
+  renderMain();
+
+  requestAnimationFrame(() => {
+    const target = $$(".message[data-message-id]").find((message) => message.dataset.messageKey === key && message.dataset.messageId === targetId);
+    if (!target) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+    target.focus({ preventScroll: true });
+    target.classList.add("reply-target");
+    clearTimeout(jumpToMessage.highlightTimer);
+    jumpToMessage.highlightTimer = setTimeout(() => target.classList.remove("reply-target"), 2200);
+  });
 }
 
 function renderMessages(list, key) {
   return list.map((message, index) => {
     const selected = state.selectedMessage?.key === key && state.selectedMessage.index === index;
     return `
-    <article class="message ${selected ? "selected" : ""} ${message.pinned ? "pinned" : ""}" data-message-index="${index}" data-message-key="${key}" tabindex="0" role="button" aria-label="Выбрать сообщение от ${escapeHTML(message.name)}" aria-pressed="${selected}">
+    <article class="message ${selected ? "selected" : ""} ${message.pinned ? "pinned" : ""}" data-message-id="${message.id}" data-message-index="${index}" data-message-key="${key}" tabindex="0" role="button" aria-label="Выбрать сообщение от ${escapeHTML(message.name)}" aria-pressed="${selected}">
       <span class="avatar ${message.tone}">${message.initials}</span>
       <div class="message-content">
-        ${message.reply ? `<div class="message-reply-reference">${icon("reply")}<span>Ответ для <strong>${message.reply.name}</strong></span><q>${message.reply.text}</q></div>` : ""}
+        ${message.reply ? renderReplyReference(message.reply, key) : ""}
         <div class="message-meta"><strong>${message.name}</strong><time>${message.time}</time>${message.pinned ? `<span class="message-pin" title="Закреплено">${icon("pin")}</span>` : ""}</div>
-        <p>${message.text}</p>
+        <p>${escapeHTML(message.text)}${message.edited ? `<span class="message-edited" title="Сообщение изменено">(изменено)</span>` : ""}</p>
       </div>
       ${selected ? `<div class="message-actions" role="toolbar" aria-label="Действия с сообщением">
         <button type="button" data-message-action="reply" aria-label="Ответить" title="Ответить">${icon("reply")}</button>
@@ -218,6 +254,33 @@ function renderMain() {
   else view.innerHTML = renderLanding();
 }
 
+function updateComposerActionButton() {
+  const composer = $("#composer");
+  const input = $("#messageInput");
+  const actionButton = $(".voice-button", composer);
+  if (!composer || !input || !actionButton) return;
+
+  const editing = Boolean(state.editingMessage);
+  const sending = !editing && Boolean(input.value.trim());
+  const mode = editing ? "editing" : sending ? "sending" : "voice";
+  const labels = {
+    editing: "Сохранить изменения",
+    sending: "Отправить сообщение",
+    voice: "Записать голосовое сообщение",
+  };
+  const icons = { editing: "check", sending: "send", voice: "mic" };
+
+  actionButton.classList.toggle("editing-submit", editing);
+  actionButton.classList.toggle("send-submit", sending);
+  if (mode !== "voice") actionButton.classList.remove("recording");
+  actionButton.type = mode === "voice" ? "button" : "submit";
+  actionButton.setAttribute("aria-label", labels[mode]);
+  actionButton.title = mode === "voice" ? "" : labels[mode];
+  actionButton.innerHTML = icon(icons[mode]);
+  if (mode === "voice") actionButton.dataset.action = "voice";
+  else actionButton.removeAttribute("data-action");
+}
+
 function renderComposer() {
   const composer = $("#composer");
   const show = ["favorite", "channel", "dm"].includes(state.view);
@@ -227,15 +290,25 @@ function renderComposer() {
   const replyPreview = $("#replyPreview");
   const compact = window.matchMedia("(max-width: 900px)").matches;
   const reply = state.replyingTo;
+  const editing = state.editingMessage;
+  const hasContext = Boolean(reply || editing);
   composer.classList.toggle("replying", Boolean(reply));
-  replyPreview.classList.toggle("active", Boolean(reply));
-  replyPreview.innerHTML = reply ? `
+  composer.classList.toggle("editing", Boolean(editing));
+  replyPreview.classList.toggle("active", hasContext);
+  replyPreview.classList.toggle("editing", Boolean(editing));
+  replyPreview.innerHTML = editing ? `
+    <span class="reply-preview-icon edit-preview-icon">${icon("edit")}</span>
+    <span class="reply-preview-copy edit-preview-copy"><span><strong>Редактирование сообщения</strong></span><small>Enter — сохранить · Esc — отменить</small></span>
+    <button class="reply-preview-close" type="button" data-message-action="cancel-edit" aria-label="Отменить редактирование" title="Отменить редактирование">${icon("close")}</button>
+  ` : reply ? `
     <span class="reply-preview-icon">${icon("reply")}</span>
     <span class="reply-preview-avatar avatar ${reply.tone}">${reply.initials}</span>
-    <span class="reply-preview-copy"><span>Ответ для <strong>${reply.name}</strong></span><small>${reply.text}</small></span>
+    <span class="reply-preview-copy"><span>Ответ для <strong>${escapeHTML(reply.name)}</strong></span><small>${escapeHTML(reply.text)}</small></span>
     <button class="reply-preview-close" type="button" data-message-action="cancel-reply" aria-label="Отменить ответ" title="Отменить ответ">${icon("close")}</button>
   ` : "";
-  input.placeholder = reply ? `Ответ для ${reply.name}` : state.view === "channel" && !compact ? "Написать сообщение в #Основной" : "Написать сообщение...";
+  input.placeholder = editing ? "Измените сообщение..." : reply ? `Ответ для ${reply.name}` : state.view === "channel" && !compact ? "Написать сообщение в #Основной" : "Написать сообщение...";
+
+  updateComposerActionButton();
 }
 
 function renderDrawer() {
@@ -558,6 +631,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const replyReference = event.target.closest("[data-reply-target-id]");
+  if (replyReference) {
+    jumpToMessage(replyReference.dataset.replyTargetKey, replyReference.dataset.replyTargetId);
+    return;
+  }
+
   const messageActionButton = event.target.closest("[data-message-action]");
   if (messageActionButton) {
     const messageAction = messageActionButton.dataset.messageAction;
@@ -565,6 +644,16 @@ document.addEventListener("click", (event) => {
       state.replyingTo = null;
       renderComposer();
       $("#messageInput").focus();
+      return;
+    }
+    if (messageAction === "cancel-edit") {
+      const input = $("#messageInput");
+      input.value = state.editingMessage?.draft || "";
+      state.editingMessage = null;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
+      renderComposer();
+      input.focus();
       return;
     }
 
@@ -575,7 +664,10 @@ document.addEventListener("click", (event) => {
     if (!message) return;
 
     if (messageAction === "reply") {
-      state.replyingTo = { key, index, name: message.name, initials: message.initials, tone: message.tone, text: message.text };
+      const input = $("#messageInput");
+      if (state.editingMessage) input.value = state.editingMessage.draft || "";
+      state.editingMessage = null;
+      state.replyingTo = { key, index, targetId: message.id, name: message.name, initials: message.initials, tone: message.tone, text: message.text };
       state.selectedMessage = null;
       renderMain();
       renderComposer();
@@ -583,7 +675,25 @@ document.addEventListener("click", (event) => {
       return;
     }
     if (messageAction === "edit") {
-      showToast(message.name === "ArCode" ? "Редактирование будет доступно в следующей версии" : "Можно редактировать только свои сообщения");
+      if (message.name !== "ArCode") {
+        showToast("Можно редактировать только свои сообщения");
+        return;
+      }
+
+      const input = $("#messageInput");
+      const draft = state.editingMessage ? state.editingMessage.draft : input.value;
+      state.replyingTo = null;
+      state.editingMessage = { key, targetId: message.id, draft };
+      state.selectedMessage = null;
+      input.value = message.text;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
+      renderMain();
+      renderComposer();
+      requestAnimationFrame(() => {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
       return;
     }
     if (messageAction === "pin") {
@@ -595,7 +705,8 @@ document.addEventListener("click", (event) => {
     if (messageAction === "delete") {
       messages[key].splice(index, 1);
       state.selectedMessage = null;
-      if (state.replyingTo?.key === key && state.replyingTo.index === index) state.replyingTo = null;
+      if (state.replyingTo?.key === key && state.replyingTo.targetId === message.id) state.replyingTo = null;
+      if (state.editingMessage?.key === key && state.editingMessage.targetId === message.id) state.editingMessage = null;
       renderMain();
       renderComposer();
       showToast("Сообщение удалено");
@@ -913,9 +1024,34 @@ document.addEventListener("submit", (event) => {
     const input = $("#messageInput");
     const text = input.value.trim();
     if (!text) return;
+
+    if (state.editingMessage) {
+      const editing = state.editingMessage;
+      const message = messages[editing.key]?.find((item) => item.id === editing.targetId);
+      if (!message) {
+        state.editingMessage = null;
+        renderComposer();
+        showToast("Сообщение больше недоступно");
+        return;
+      }
+
+      const changed = message.text !== text;
+      message.text = text;
+      if (changed) message.edited = true;
+      state.editingMessage = null;
+      state.selectedMessage = null;
+      input.value = editing.draft || "";
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
+      renderMain();
+      renderComposer();
+      showToast(changed ? "Сообщение изменено" : "Изменений нет");
+      return;
+    }
+
     const key = state.view === "channel" ? "channel" : state.view === "favorite" ? "favorite" : "dm";
-    const reply = state.replyingTo ? { name: state.replyingTo.name, text: state.replyingTo.text } : null;
-    messages[key].push({ name: "ArCode", initials: "A", tone: "", time: "только что", text: escapeHTML(text), reply });
+    const reply = state.replyingTo ? { targetId: state.replyingTo.targetId, name: state.replyingTo.name, initials: state.replyingTo.initials, tone: state.replyingTo.tone, text: state.replyingTo.text } : null;
+    messages[key].push({ id: `${key}-${Date.now()}`, name: "ArCode", initials: "A", tone: "", time: "только что", text, reply });
     state.replyingTo = null;
     state.selectedMessage = null;
     input.value = "";
@@ -930,6 +1066,7 @@ document.addEventListener("input", (event) => {
   if (event.target.id === "messageInput") {
     event.target.style.height = "auto";
     event.target.style.height = `${Math.min(event.target.scrollHeight, 125)}px`;
+    updateComposerActionButton();
   }
   const output = event.target.dataset.output;
   if (output) {
@@ -940,7 +1077,15 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    if (state.replyingTo) {
+    if (state.editingMessage) {
+      const input = $("#messageInput");
+      input.value = state.editingMessage.draft || "";
+      state.editingMessage = null;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
+      renderComposer();
+      input.focus();
+    } else if (state.replyingTo) {
       state.replyingTo = null;
       renderComposer();
       $("#messageInput").focus();
