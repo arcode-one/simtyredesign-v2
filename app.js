@@ -52,6 +52,7 @@ const state = {
   ],
   activeCall: true,
   callLayout: "split",
+  callReturnLayout: "split",
   callMicMuted: false,
   callSoundMuted: false,
   callCameraEnabled: false,
@@ -391,17 +392,20 @@ function renderCallControl(type, iconName, label, active = false, hasMenu = fals
 
 function renderCallStage() {
   const split = state.callLayout === "split";
-  return `<section class="call-stage ${split ? "split" : "focus"}" aria-label="Активный звонок">
+  const focus = state.callLayout === "focus";
+  return `<section class="call-stage ${state.callLayout}" aria-label="Активный звонок">
     <header class="call-stage-head">
-      <div class="call-stage-meta"><span class="call-live-pill"><i></i>В звонке</span><strong>Test user 7K3IAI</strong><small>2 участника · 00:42</small></div>
+      <div class="call-stage-meta">${focus ? `<span class="focus-call-user">${icon("mic")}<strong>Test user 7K3IAI</strong></span>` : `<span class="call-live-pill"><i></i>В звонке</span><strong>Test user 7K3IAI</strong><small>2 участника · 00:42</small>`}</div>
       <div class="call-view-actions">
-        <button type="button" data-action="call-layout" aria-label="${split ? "Скрыть чат" : "Показать чат"}" title="${split ? "Скрыть чат" : "Показать чат"}">${icon(split ? "maximize" : "chat")}</button>
+        ${focus
+          ? `<button type="button" data-action="call-fullscreen" aria-label="Закрыть полноэкранный режим" title="Закрыть полноэкранный режим">${icon("close")}</button>`
+          : `<button class="${split ? "active" : ""}" type="button" data-action="call-chat-toggle" aria-label="${split ? "Скрыть чат" : "Показать чат"}" title="${split ? "Скрыть чат" : "Показать чат"}">${icon("chat")}</button><button type="button" data-action="call-fullscreen" aria-label="Открыть отдельный полноэкранный режим" title="Открыть отдельный полноэкранный режим">${icon("maximize")}</button>`}
       </div>
     </header>
-    <div class="call-participants">
-      <article class="call-participant speaking"><span class="call-participant-avatar green">T</span><span class="call-participant-name"><i></i>Test user 7K3IAI</span></article>
-      <article class="call-participant"><span class="call-participant-avatar">A</span><span class="call-participant-name">ArCode</span>${state.callMicMuted ? `<span class="participant-muted">${icon("mic")}</span>` : ""}</article>
-    </div>
+    ${!focus ? `<div class="call-participants">
+        <article class="call-participant speaking"><span class="call-participant-avatar green">T</span><span class="call-participant-name"><i></i>Test user 7K3IAI</span></article>
+        <article class="call-participant"><span class="call-participant-avatar">A</span><span class="call-participant-name">ArCode</span>${state.callMicMuted ? `<span class="participant-muted">${icon("mic")}</span>` : ""}</article>
+      </div>` : `<div class="call-participants single"><div class="call-focus-participant"><span class="call-focus-avatar">T</span></div></div>`}
     <div class="call-controls" role="toolbar" aria-label="Управление звонком">
       ${renderCallControl("mic", "mic", state.callMicMuted ? "Включить микрофон" : "Выключить микрофон", false, true)}
       ${renderCallControl("sound", "volume", state.callSoundMuted ? "Включить звук" : "Выключить звук", false, true)}
@@ -455,7 +459,7 @@ function updateComposerActionButton() {
 
 function renderComposer() {
   const composer = $("#composer");
-  const show = ["favorite", "channel", "dm"].includes(state.view) && !(isCurrentCallView() && state.callLayout === "focus");
+  const show = ["favorite", "channel", "dm"].includes(state.view) && !(isCurrentCallView() && state.callLayout !== "split");
   composer.classList.toggle("hidden", !show);
   if (!show) return;
   const input = $("#messageInput");
@@ -994,6 +998,7 @@ document.addEventListener("click", (event) => {
     if (callAction === "accept") {
       state.activeCall = true;
       state.callLayout = "split";
+      state.callReturnLayout = "split";
       state.space = "home";
       state.view = "dm";
       state.selectedDM = "dm-friend-test";
@@ -1076,8 +1081,19 @@ document.addEventListener("click", (event) => {
     renderApp();
     return;
   }
-  if (action === "call-layout") {
-    state.callLayout = state.callLayout === "split" ? "focus" : "split";
+  if (action === "call-chat-toggle") {
+    state.callLayout = state.callLayout === "split" ? "stage" : "split";
+    state.callDeviceMenu = null;
+    renderMain();
+    renderComposer();
+    return;
+  }
+  if (action === "call-fullscreen") {
+    if (state.callLayout === "focus") state.callLayout = state.callReturnLayout || "stage";
+    else {
+      state.callReturnLayout = state.callLayout;
+      state.callLayout = "focus";
+    }
     state.callDeviceMenu = null;
     renderMain();
     renderComposer();
@@ -1120,6 +1136,7 @@ document.addEventListener("click", (event) => {
     state.activeCall = false;
     state.callDeviceMenu = null;
     state.callLayout = "split";
+    state.callReturnLayout = "split";
     messages.dm.push({ id: `dm-call-end-${Date.now()}`, type: "event", event: "call-end", name: "ArCode", time: "только что" });
     renderApp();
     showMessage({ type: "info", title: "Звонок завершён", text: "Длительность — 00:42" });
@@ -1542,7 +1559,7 @@ document.addEventListener("keydown", (event) => {
       state.callDeviceMenu = null;
       renderMain();
     } else if (isCurrentCallView() && state.callLayout === "focus") {
-      state.callLayout = "split";
+      state.callLayout = state.callReturnLayout || "stage";
       renderMain();
       renderComposer();
     } else if (state.modal) closeModal();
