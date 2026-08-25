@@ -448,7 +448,7 @@ svg {
   cursor: pointer;
   transition: border-color var(--ease), background var(--ease), transform var(--ease);
 }
-.active-call-dock:hover { border-color: rgba(121, 131, 245, .45); background: linear-gradient(145deg, rgba(88, 101, 242, .23), rgba(40, 42, 47, .98) 64%); transform: translateY(-1px); }
+.active-call-dock:hover { border-color: rgba(121, 131, 245, .45); background: linear-gradient(145deg, rgba(88, 101, 242, .23), rgba(40, 42, 47, .98) 64%); }
 .active-call-dock:focus-visible { outline: 2px solid var(--blurple-light); outline-offset: 2px; }
 .active-call-dock-top { display: grid; grid-template-columns: 8px minmax(0, 1fr); align-items: center; gap: 8px; }
 .call-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4dd798; box-shadow: 0 0 0 4px rgba(77, 215, 152, .12); }
@@ -468,7 +468,7 @@ svg {
   cursor: pointer;
   transition: color var(--ease), background var(--ease), transform var(--ease);
 }
-.active-call-quick-actions button:hover { color: #fff; background: rgba(255, 255, 255, .11); transform: translateY(-1px); }
+.active-call-quick-actions button:hover { color: #fff; background: rgba(255, 255, 255, .11); }
 .active-call-quick-actions button.active { color: #fff; background: rgba(88, 101, 242, .48); }
 .active-call-quick-actions button.off { color: #ff7b7f; background: rgba(218, 55, 60, .13); }
 .active-call-quick-actions button.off::after { content: ""; position: absolute; width: 20px; height: 2px; border-radius: 2px; background: currentColor; transform: rotate(-45deg); }
@@ -855,30 +855,17 @@ svg {
 .message-edited { margin-left: 5px; color: var(--dim); font-size: 10px; white-space: nowrap; }
 
 .chat-system-event {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  margin: 4px 22px;
-  padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, .055);
-  border-radius: 11px;
+  display: block;
+  margin: 5px 22px 5px 76px;
+  padding: 2px 0;
   color: var(--muted);
-  background: rgba(255, 255, 255, .022);
+  font-size: 12px;
 }
-.chat-system-event[role="button"] { cursor: pointer; transition: border-color var(--ease), background var(--ease), transform var(--ease); }
-.chat-system-event[role="button"]:hover { border-color: rgba(121, 131, 245, .25); background: rgba(88, 101, 242, .08); transform: translateY(-1px); }
+.chat-system-event[role="button"] { cursor: pointer; transition: color var(--ease); }
+.chat-system-event[role="button"]:hover { color: var(--text-2); }
 .chat-system-event[role="button"]:focus-visible { outline: 2px solid var(--blurple-light); outline-offset: 2px; }
-.chat-system-event-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--blurple-light); background: rgba(88, 101, 242, .13); }
-.chat-system-event.call-start .chat-system-event-icon { color: #64dda2; background: rgba(35, 165, 89, .13); }
-.chat-system-event.call-end .chat-system-event-icon { color: var(--dim); background: rgba(255, 255, 255, .055); }
-.chat-system-event-icon svg { width: 16px; height: 16px; }
-.chat-system-event.pin .chat-system-event-icon svg { transform: rotate(45deg); }
-.chat-system-event-copy { display: grid; min-width: 0; line-height: 1.3; }
+.chat-system-event-copy { line-height: 1.4; }
 .chat-system-event-copy strong { color: var(--text-2); font-weight: 680; }
-.chat-system-event-copy small { color: var(--dim); font-size: 10px; }
-.chat-system-event time { color: var(--dim); font-size: 10px; }
 
 .message-actions {
   position: absolute;
@@ -1149,7 +1136,7 @@ svg {
 .call-live-pill i { width: 6px; height: 6px; border-radius: 50%; background: #4dd798; box-shadow: 0 0 0 3px rgba(77, 215, 152, .1); }
 .call-view-actions { display: flex; align-items: center; gap: 6px; }
 .call-view-actions button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(255, 255, 255, .075); border-radius: 10px; color: var(--muted); background: rgba(255, 255, 255, .045); cursor: pointer; transition: color var(--ease), border-color var(--ease), background var(--ease), transform var(--ease); }
-.call-view-actions button:hover { color: #fff; border-color: rgba(121, 131, 245, .28); background: rgba(88, 101, 242, .16); transform: translateY(-1px); }
+.call-view-actions button:hover { color: #fff; border-color: rgba(121, 131, 245, .28); background: rgba(88, 101, 242, .16); }
 .call-view-actions svg { width: 17px; height: 17px; }
 
 .call-participants { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(170px, 310px)); place-content: center; gap: clamp(10px, 1.5vw, 18px); width: 100%; height: 100%; }
@@ -1185,7 +1172,7 @@ svg {
 .call-control-menu svg { width: 13px; height: 13px; transition: transform var(--ease); }
 .call-control-menu.open svg { transform: rotate(180deg); }
 .call-end-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 118px; padding: 0 17px; border-color: rgba(255, 111, 116, .3); border-radius: 13px; color: #fff; background: linear-gradient(145deg, #e43b41, #c92e34); box-shadow: 0 14px 30px rgba(218, 55, 60, .22); pointer-events: auto; font-weight: 680; }
-.call-end-button:hover { background: linear-gradient(145deg, #f0464c, #d33339); transform: translateY(-1px); box-shadow: 0 16px 34px rgba(218, 55, 60, .3); }
+.call-end-button:hover { background: linear-gradient(145deg, #f0464c, #d33339); box-shadow: 0 16px 34px rgba(218, 55, 60, .3); }
 .call-end-button svg { width: 19px; height: 19px; transform: rotate(135deg); }
 
 .call-device-menu { position: absolute; right: 0; bottom: calc(100% + 9px); z-index: 30; display: grid; width: 270px; padding: 7px; border: 1px solid rgba(255, 255, 255, .095); border-radius: 13px; background: rgba(30, 31, 35, .98); box-shadow: 0 20px 54px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .035) inset; backdrop-filter: blur(18px); animation: menu-in .16s cubic-bezier(.2,.8,.2,1) both; }
@@ -1453,7 +1440,7 @@ svg {
   transition: color var(--ease), border-color var(--ease), background var(--ease), transform var(--ease), box-shadow var(--ease);
 }
 
-.call-button:hover { color: #fff; transform: translateY(-1px); }
+.call-button:hover { color: #fff; }
 .call-button:active { transform: translateY(0) scale(.985); }
 .call-button svg { box-sizing: border-box; width: 34px; height: 34px; padding: 8px; border-radius: 50%; color: #fff; stroke-width: 2; transition: transform var(--ease), box-shadow var(--ease); }
 .call-button.decline:hover { border-color: rgba(255, 112, 116, .3); background: rgba(218, 55, 60, .1); box-shadow: 0 12px 28px rgba(218, 55, 60, .1); }
@@ -2294,8 +2281,7 @@ input[type="range"] { width: 100%; accent-color: var(--blurple); }
   .channel-intro h2 { font-size: 22px; }
   .message { grid-template-columns: 36px minmax(0,1fr); gap: 9px; margin-inline: 6px; padding-inline: 6px; border-radius: 10px; }
   .message .avatar { width: 34px; height: 34px; }
-  .chat-system-event { grid-template-columns: 30px minmax(0, 1fr); gap: 8px; margin-inline: 8px; }
-  .chat-system-event time { display: none; }
+  .chat-system-event { margin: 5px 14px 5px 55px; }
 
   .head-call-status { display: none; }
   .call-chat-layout.split { grid-template-rows: minmax(280px, 48%) minmax(0, 1fr); }

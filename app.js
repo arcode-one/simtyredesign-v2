@@ -332,12 +332,9 @@ function jumpToMessage(key, targetId) {
 function renderMessages(list, key) {
   return list.map((message, index) => {
     if (message.type === "event") {
-      const isCall = message.event === "call-start" || message.event === "call-end";
       const label = message.event === "pin" ? "закрепил(а) сообщение" : message.event === "call-end" ? "завершил(а) звонок" : "начал(а) звонок";
       return `<article class="chat-system-event ${message.event}" ${message.event === "call-start" && state.activeCall ? `data-action="open-call" role="button" tabindex="0"` : ""}>
-        <span class="chat-system-event-icon">${icon(isCall ? "phone" : "pin")}</span>
-        <span class="chat-system-event-copy"><span><strong>${escapeHTML(message.name)}</strong> ${label}</span>${message.event === "call-start" && state.activeCall ? "<small>Нажмите, чтобы вернуться к звонку</small>" : ""}</span>
-        <time>${escapeHTML(message.time || "только что")}</time>
+        <span class="chat-system-event-copy"><strong>${escapeHTML(message.name)}</strong> ${label}</span>
       </article>`;
     }
     const selected = state.selectedMessage?.key === key && state.selectedMessage.index === index;
