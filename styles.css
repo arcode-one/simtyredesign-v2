@@ -747,6 +747,7 @@ svg {
 .friend-actions { display: flex; align-items: center; gap: 6px; }
 .friend-action { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 9px; color: var(--muted); background: var(--surface-2); cursor: pointer; transition: color var(--ease), border-color var(--ease), background var(--ease); }
 .friend-action svg { width: 17px; height: 17px; stroke-width: 2; }
+.friend-action.cancel-request svg { display: block; width: 16px; height: 16px; place-self: center; }
 .friend-action.friend-message:hover { color: #fff; border-color: rgba(121,131,245,.28); background: rgba(88,101,242,.24); }
 .friend-action.accept:hover { color: #4de0a0; border-color: rgba(60,207,145,.28); background: rgba(60,207,145,.13); }
 .friend-action.reject:hover,

@@ -46,7 +46,9 @@ const state = {
   incomingFriendRequests: [
     { id: "incoming-test", name: "Test user 1aCI06", initials: "T", tone: "teal" },
   ],
-  outgoingFriendRequests: [],
+  outgoingFriendRequests: [
+    { id: "outgoing-test", name: "Test user Q8M4K2", initials: "T", tone: "blue" },
+  ],
   modal: null,
   modalParent: null,
 };
@@ -225,7 +227,7 @@ function renderFriends() {
   const listLabels = { all: "Друзья", incoming: "Входящие запросы", outgoing: "Исходящие запросы" };
   const renderActions = (person) => {
     if (state.friendsTab === "incoming") return `<button class="friend-action accept" type="button" data-friend-action="accept" data-friend-id="${person.id}" aria-label="Принять запрос" title="Принять запрос">${icon("user-check")}</button><button class="friend-action reject" type="button" data-friend-action="reject" data-friend-id="${person.id}" aria-label="Отклонить запрос" title="Отклонить запрос">${icon("user-x")}</button>`;
-    if (state.friendsTab === "outgoing") return `<button class="friend-action reject" type="button" data-friend-action="cancel" data-friend-id="${person.id}" aria-label="Отменить запрос" title="Отменить запрос">${icon("close")}</button>`;
+    if (state.friendsTab === "outgoing") return `<button class="friend-action reject cancel-request" type="button" data-friend-action="cancel" data-friend-id="${person.id}" aria-label="Отменить запрос" title="Отменить запрос">${icon("close")}</button>`;
     return `<button class="friend-action friend-message" type="button" data-friend-action="message" data-friend-id="${person.id}" aria-label="Написать сообщение" title="Написать сообщение">${icon("chat")}</button><button class="friend-action remove" type="button" data-friend-action="remove" data-friend-id="${person.id}" aria-label="Удалить из друзей" title="Удалить из друзей">${icon("trash")}</button>`;
   };
   const friendContent = people.length ? `<section class="friend-list" aria-label="${listLabels[state.friendsTab]}"><div class="friend-list-heading"><span>${listLabels[state.friendsTab]}</span><strong>${people.length}</strong></div>${people.map((person) => `<article class="friend-row"><span class="friend-avatar-wrap"><span class="avatar ${person.tone || ""}">${escapeHTML(person.initials)}</span></span><span class="friend-copy ${state.friendsTab === "all" ? "single-line" : ""}"><strong>${escapeHTML(person.name)}</strong>${state.friendsTab === "incoming" ? "<small>Хочет добавить вас в друзья</small>" : state.friendsTab === "outgoing" ? "<small>Ожидает ответа</small>" : ""}</span><span class="friend-actions">${renderActions(person)}</span></article>`).join("")}</section>` : `<div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol friend-symbol ${state.friendsTab}">${icon(empty.icon)}</div><h2>${empty.title}</h2><p>${empty.text}</p></div></div>`;
