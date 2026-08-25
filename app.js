@@ -58,12 +58,54 @@ const messages = {
   dm: [],
 };
 
+let messageSequence = 0;
+const messageTimers = new Map();
+
+function dismissMessage(target) {
+  const message = typeof target === "string" ? document.querySelector(`[data-system-message-id="${target}"]`) : target;
+  if (!message || message.classList.contains("leaving")) return;
+  clearTimeout(messageTimers.get(message.dataset.systemMessageId));
+  messageTimers.delete(message.dataset.systemMessageId);
+  message.classList.add("leaving");
+  setTimeout(() => message.remove(), 180);
+}
+
+function showMessage(options) {
+  const config = typeof options === "string" ? { text: options } : options || {};
+  const type = ["success", "info", "warning", "error"].includes(config.type) ? config.type : "info";
+  const text = String(config.text || "").trim();
+  const title = String(config.title || "").trim();
+  const duration = Number.isFinite(config.duration) ? Math.max(0, config.duration) : 3400;
+  if (!text && !title) return null;
+
+  const icons = { success: "check", info: "bell", warning: "warning", error: "close" };
+  const id = `system-message-${Date.now()}-${++messageSequence}`;
+  const message = document.createElement("article");
+  message.className = `system-message ${type}`;
+  message.dataset.systemMessageId = id;
+  message.setAttribute("role", type === "error" ? "alert" : "status");
+  message.style.setProperty("--message-duration", `${duration}ms`);
+  message.innerHTML = `
+    <span class="system-message-icon">${icon(icons[type])}</span>
+    <span class="system-message-copy">
+      ${title ? `<strong>${escapeHTML(title)}</strong>` : ""}
+      ${text ? `<span class="${title ? "" : "single"}">${escapeHTML(text)}</span>` : ""}
+    </span>
+    <button class="system-message-close" type="button" data-system-message-dismiss aria-label="Закрыть уведомление" title="Закрыть">${icon("close")}</button>
+    ${duration > 0 ? `<span class="system-message-progress" aria-hidden="true"></span>` : ""}
+  `;
+
+  const stack = $("#messageStack");
+  const currentMessages = $$(".system-message", stack);
+  if (currentMessages.length >= 4) dismissMessage(currentMessages[0]);
+  stack.append(message);
+  requestAnimationFrame(() => message.classList.add("visible"));
+  if (duration > 0) messageTimers.set(id, setTimeout(() => dismissMessage(message), duration));
+  return { id, close: () => dismissMessage(message) };
+}
+
 function showToast(text) {
-  const toast = $("#toast");
-  toast.textContent = text;
-  toast.classList.add("show");
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove("show"), 2200);
+  return showMessage({ type: "info", text });
 }
 
 function closeMobile() {
@@ -611,6 +653,12 @@ function closeModal() {
 }
 
 document.addEventListener("click", (event) => {
+  const systemMessageClose = event.target.closest("[data-system-message-dismiss]");
+  if (systemMessageClose) {
+    dismissMessage(systemMessageClose.closest(".system-message"));
+    return;
+  }
+
   const mobileNotificationAction = event.target.closest("[data-mobile-notification-action]")?.dataset.mobileNotificationAction;
   if (mobileNotificationAction) {
     state.mobileNotificationPromptOpen = false;
@@ -1041,8 +1089,12 @@ document.addEventListener("submit", (event) => {
   event.preventDefault();
   if (event.target.id === "friendForm") {
     const value = $("#friendName").value.trim();
-    showToast(value ? `Запрос пользователю ${value} отправлен` : "Введите имя пользователя");
-    if (value) $("#friendName").value = "";
+    if (value) {
+      showMessage({ type: "success", title: "Запрос отправлен", text: `Приглашение пользователю «${value}» успешно отправлено.`, duration: 4200 });
+      $("#friendName").value = "";
+    } else {
+      showMessage({ type: "warning", title: "Не удалось отправить запрос", text: "Введите точное имя пользователя.", duration: 4000 });
+    }
   } else if (event.target.id === "newChatForm") {
     const value = $("#newChatName").value.trim();
     if (!value) return showToast("Введите имя пользователя");
