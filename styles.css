@@ -450,8 +450,7 @@ svg {
 }
 .active-call-dock:hover { border-color: rgba(121, 131, 245, .45); background: linear-gradient(145deg, rgba(88, 101, 242, .23), rgba(40, 42, 47, .98) 64%); transform: translateY(-1px); }
 .active-call-dock:focus-visible { outline: 2px solid var(--blurple-light); outline-offset: 2px; }
-.active-call-dock-top { display: grid; grid-template-columns: 8px minmax(0, 1fr) 16px; align-items: center; gap: 8px; }
-.active-call-dock-top > svg { width: 15px; height: 15px; color: var(--dim); transform: rotate(-90deg); }
+.active-call-dock-top { display: grid; grid-template-columns: 8px minmax(0, 1fr); align-items: center; gap: 8px; }
 .call-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4dd798; box-shadow: 0 0 0 4px rgba(77, 215, 152, .12); }
 .active-call-dock-copy { display: grid; min-width: 0; }
 .active-call-dock-copy strong { color: var(--text); font-size: 12px; }

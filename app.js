@@ -190,7 +190,6 @@ function renderActiveCallDock() {
     <div class="active-call-dock-top">
       <span class="call-live-dot" aria-hidden="true"></span>
       <span class="active-call-dock-copy"><strong>Текущий звонок</strong><small>Test user 7K3IAI · 00:42</small></span>
-      ${icon("chevron")}
     </div>
     <div class="active-call-quick-actions" role="toolbar" aria-label="Быстрые действия звонка">
       <button class="${state.callMicMuted ? "off" : ""}" type="button" data-action="call-mic" aria-label="${state.callMicMuted ? "Включить" : "Выключить"} микрофон" title="${state.callMicMuted ? "Включить" : "Выключить"} микрофон">${icon("mic")}</button>
