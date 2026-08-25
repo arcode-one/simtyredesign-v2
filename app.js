@@ -38,6 +38,8 @@ const state = {
   selectedMessage: null,
   replyingTo: null,
   editingMessage: null,
+  mobileNotificationPromptOpen: false,
+  mobileNotificationPromptSeen: false,
   modal: null,
   modalParent: null,
 };
@@ -321,6 +323,33 @@ function renderDrawer() {
   drawer.innerHTML = `<div class="drawer-head"><span>Информация</span><button class="icon-button" data-action="info-close" aria-label="Закрыть">${icon("close")}</button></div><div class="drawer-tabs"><button class="${state.infoTab === "media" ? "active" : ""}" data-info-tab="media">Медиа</button><button class="${state.infoTab === "records" ? "active" : ""}" data-info-tab="records">Записи</button><button class="${state.infoTab === "files" ? "active" : ""}" data-info-tab="files">Файлы</button></div><div class="drawer-empty"><div>${icon(iconName)}<p>В разделе «${label}» пока ничего нет.</p></div></div>`;
 }
 
+function renderMobileNotificationPrompt() {
+  const root = $("#mobileNotificationPrompt");
+  const mobile = window.matchMedia("(max-width: 767px)").matches;
+  const chatOpen = ["favorite", "channel", "dm"].includes(state.view);
+
+  if (mobile && chatOpen && !state.mobileNotificationPromptSeen) {
+    state.mobileNotificationPromptSeen = true;
+    state.mobileNotificationPromptOpen = true;
+  }
+  if (!mobile) state.mobileNotificationPromptOpen = false;
+
+  const open = mobile && state.mobileNotificationPromptOpen;
+  root.classList.toggle("open", open);
+  root.setAttribute("aria-hidden", String(!open));
+  root.innerHTML = open ? `<section class="mobile-notification-sheet" role="dialog" aria-modal="true" aria-labelledby="mobileNotificationTitle" aria-describedby="mobileNotificationText">
+    <span class="mobile-sheet-handle" aria-hidden="true"></span>
+    <header class="mobile-notification-head">
+      <span class="mobile-notification-icon">${icon("bell")}</span>
+      <div><h2 id="mobileNotificationTitle">Включите уведомления</h2><p id="mobileNotificationText">Так вы не пропустите новые сообщения и звонки.</p></div>
+    </header>
+    <div class="mobile-notification-actions">
+      <button class="mobile-notification-enable" type="button" data-mobile-notification-action="enable">Включить</button>
+      <button class="mobile-notification-later" type="button" data-mobile-notification-action="dismiss">Не сейчас</button>
+    </div>
+  </section>` : "";
+}
+
 function renderApp() {
   $("#app").classList.toggle("mobile-content", state.view !== "landing");
   $$("[data-space]").forEach((button) => button.classList.toggle("active", button.dataset.space === state.space));
@@ -330,6 +359,7 @@ function renderApp() {
   renderComposer();
   renderDrawer();
   closeMobile();
+  renderMobileNotificationPrompt();
 }
 
 function modalShell(title, subtitle, content, footer = "", wide = false) {
@@ -581,6 +611,23 @@ function closeModal() {
 }
 
 document.addEventListener("click", (event) => {
+  const mobileNotificationAction = event.target.closest("[data-mobile-notification-action]")?.dataset.mobileNotificationAction;
+  if (mobileNotificationAction) {
+    state.mobileNotificationPromptOpen = false;
+    if (mobileNotificationAction === "enable") {
+      state.notificationMode = "all";
+      renderHeader();
+      showToast("Уведомления включены");
+    }
+    renderMobileNotificationPrompt();
+    return;
+  }
+  if (event.target.id === "mobileNotificationPrompt") {
+    state.mobileNotificationPromptOpen = false;
+    renderMobileNotificationPrompt();
+    return;
+  }
+
   const space = event.target.closest("[data-space]");
   if (space) {
     clearMessageInteraction();
@@ -1077,7 +1124,10 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    if (state.editingMessage) {
+    if (state.mobileNotificationPromptOpen) {
+      state.mobileNotificationPromptOpen = false;
+      renderMobileNotificationPrompt();
+    } else if (state.editingMessage) {
       const input = $("#messageInput");
       input.value = state.editingMessage.draft || "";
       state.editingMessage = null;
@@ -1118,6 +1168,9 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("resize", renderComposer);
+window.addEventListener("resize", () => {
+  renderComposer();
+  renderMobileNotificationPrompt();
+});
 
 renderApp();
