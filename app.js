@@ -401,7 +401,7 @@ function renderCallStage() {
       <div class="call-view-actions">
         ${focus
           ? `<button type="button" data-action="call-fullscreen" aria-label="Закрыть полноэкранный режим" title="Закрыть полноэкранный режим">${icon("close")}</button>`
-          : `<button class="${split ? "active" : ""}" type="button" data-action="call-chat-toggle" aria-label="${split ? "Скрыть чат" : "Показать чат"}" title="${split ? "Скрыть чат" : "Показать чат"}">${icon("chat")}</button><button type="button" data-action="call-fullscreen" aria-label="Открыть отдельный полноэкранный режим" title="Открыть отдельный полноэкранный режим">${icon("maximize")}</button>`}
+          : `<button type="button" data-action="call-chat-toggle" aria-label="${split ? "Скрыть чат" : "Показать чат"}" title="${split ? "Скрыть чат" : "Показать чат"}">${icon("chat")}</button><button type="button" data-action="call-fullscreen" aria-label="Открыть отдельный полноэкранный режим" title="Открыть отдельный полноэкранный режим">${icon("maximize")}</button>`}
       </div>
     </header>
     ${!focus ? `<div class="call-participants">
@@ -425,6 +425,7 @@ function isCurrentCallView() {
 function renderMain() {
   const view = $("#mainView");
   const callView = isCurrentCallView();
+  $("#app").classList.toggle("call-focus-mode", callView && state.callLayout === "focus");
   view.classList.toggle("call-view-active", callView);
   if (callView) view.innerHTML = `<div class="call-chat-layout ${state.callLayout}">${renderCallStage()}<section class="call-chat-pane" aria-label="Чат звонка">${renderChat("dm", true)}</section></div>`;
   else if (state.view === "friends") view.innerHTML = renderFriends();
@@ -496,20 +497,8 @@ function renderDrawer() {
   if (!state.infoOpen) { drawer.innerHTML = ""; return; }
   const tabs = { media: ["Медиа", "image"], records: ["Записи", "play"], files: ["Файлы", "file"] };
   const [label, iconName] = tabs[state.infoTab];
-  const callAttributes = state.activeCall ? `data-action="open-call"` : `data-friend-action="call" data-friend-id="friend-test"`;
   drawer.innerHTML = `<div class="drawer-head"><span>Информация</span><button class="icon-button" data-action="info-close" aria-label="Закрыть">${icon("close")}</button></div>
     <div class="drawer-scroll">
-      <section class="drawer-profile" aria-label="Профиль собеседника">
-        <div class="drawer-profile-banner"></div>
-        <div class="drawer-profile-body">
-          <span class="avatar green drawer-profile-avatar">T<span class="online"></span></span>
-          <div class="drawer-profile-copy"><h2>Test user 7K3IAI</h2><p><i></i>В сети</p></div>
-          <div class="drawer-profile-actions">
-            <button type="button" ${callAttributes}>${icon("phone")}<span>${state.activeCall ? "В звонок" : "Позвонить"}</span></button>
-            <button type="button" data-action="info-close">${icon("chat")}<span>К чату</span></button>
-          </div>
-        </div>
-      </section>
       <section class="drawer-content-card">
         <div class="drawer-tabs" role="tablist" aria-label="Материалы беседы"><button class="${state.infoTab === "media" ? "active" : ""}" data-info-tab="media" role="tab" aria-selected="${state.infoTab === "media"}">${icon("image")}<span>Медиа</span></button><button class="${state.infoTab === "records" ? "active" : ""}" data-info-tab="records" role="tab" aria-selected="${state.infoTab === "records"}">${icon("play")}<span>Записи</span></button><button class="${state.infoTab === "files" ? "active" : ""}" data-info-tab="files" role="tab" aria-selected="${state.infoTab === "files"}">${icon("file")}<span>Файлы</span></button></div>
         <div class="drawer-empty"><div><span class="drawer-empty-icon">${icon(iconName)}</span><strong>Пока пусто</strong><p>В разделе «${label}» пока ничего нет.</p></div></div>
@@ -628,26 +617,16 @@ function renderPermissionMatrix(scope = "channel") {
 function renderUserSettings() {
   const tabs = [
     ["profile", "users", "Профиль"],
-    ["notifications", "bell", "Уведомления"],
     ["voice", "mic", "Голос и видео"],
     ["devices", "monitor", "Устройства"],
   ];
+  if (!tabs.some(([id]) => id === state.userSettingsTab)) state.userSettingsTab = "profile";
   const activeTitle = tabs.find(([id]) => id === state.userSettingsTab)?.[2] || "Профиль";
   const nav = `<nav class="settings-nav">${tabs.map(([id, iconName, label]) => `<button class="${state.userSettingsTab === id ? "active" : ""}" data-user-settings-tab="${id}">${icon(iconName)}${label}</button>`).join("")}<button class="delete" data-confirm="logout">${icon("log-out")}Выйти</button></nav>`;
   return modalShell(state.mobileSettingsView ? activeTitle : "Настройки пользователя", state.mobileSettingsView ? "" : "Профиль, голос и активные устройства.", `<div class="settings-shell ${state.mobileSettingsView ? "mobile-detail" : "mobile-menu"}">${nav}<section class="settings-view" id="settingsView">${renderUserSettingsView()}</section></div>`, "", true);
 }
 
 function renderUserSettingsView() {
-  if (state.userSettingsTab === "notifications") {
-    const messageTests = [
-      ["success", "check", "Успех", "Запрос в друзья отправлен", "Приглашение пользователю «TestUser» успешно отправлено."],
-      ["warning", "warning", "Предупреждение", "Не удалось отправить запрос", "Введите точное имя пользователя."],
-      ["info", "bell", "Информация", "Сообщение закреплено", "Оно будет доступно всем участникам."],
-      ["error", "close", "Ошибка", "Не удалось выполнить действие", "Попробуйте ещё раз."],
-    ];
-    return `<div class="page-title notification-test-heading"><h1>Уведомления</h1><p>Нажмите на состояние, чтобы посмотреть универсальную плашку.</p></div><div class="settings-card notification-test-card"><h2>Состояния сообщений</h2><div class="notification-test-grid">${messageTests.map(([type, iconName, label, title, text]) => `<button class="notification-test-button ${type}" type="button" data-message-test="${type}" data-message-title="${title}" data-message-text="${text}"><span class="notification-test-icon">${icon(iconName)}</span><span><strong>${label}</strong><small>${title}</small></span></button>`).join("")}</div></div>`;
-  }
-
   if (state.userSettingsTab === "voice") {
     return `<h1>Голос и видео</h1><div class="settings-card"><h2>Устройства</h2><div class="field"><label>Устройство ввода (микрофон)</label><select class="select"><option>Устройство audioinput</option></select></div><div class="range-row"><label>Громкость микрофона</label><input type="range" min="0" max="200" value="100" data-output="micRange" /><output id="micRange">100%</output></div><div class="field"><label>Устройство вывода</label><select class="select"><option>Устройство audiooutput</option></select></div><div class="range-row"><label>Громкость вывода</label><input type="range" min="0" max="200" value="100" data-output="soundRange" /><output id="soundRange">100%</output></div></div><div class="settings-card"><h2>Режим голосовой активации</h2><div class="type-switch"><button class="active" type="button" data-type-button>Голосовая активация</button><button type="button" data-type-button>Режим рации</button></div><div class="range-row"><label>Чувствительность</label><input type="range" min="-60" max="0" value="-30" data-output="sensitivity" /><output id="sensitivity">-30 dB</output></div></div><div class="settings-card"><h2>Тестирование</h2><button class="secondary" data-toast="Тест микрофона запущен">Тест микрофона</button> <button class="secondary" data-toast="Воспроизводим тестовый звук">Воспроизвести</button></div>`;
   }
