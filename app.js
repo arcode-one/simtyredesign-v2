@@ -496,7 +496,25 @@ function renderDrawer() {
   if (!state.infoOpen) { drawer.innerHTML = ""; return; }
   const tabs = { media: ["Медиа", "image"], records: ["Записи", "play"], files: ["Файлы", "file"] };
   const [label, iconName] = tabs[state.infoTab];
-  drawer.innerHTML = `<div class="drawer-head"><span>Информация</span><button class="icon-button" data-action="info-close" aria-label="Закрыть">${icon("close")}</button></div><div class="drawer-tabs"><button class="${state.infoTab === "media" ? "active" : ""}" data-info-tab="media">Медиа</button><button class="${state.infoTab === "records" ? "active" : ""}" data-info-tab="records">Записи</button><button class="${state.infoTab === "files" ? "active" : ""}" data-info-tab="files">Файлы</button></div><div class="drawer-empty"><div>${icon(iconName)}<p>В разделе «${label}» пока ничего нет.</p></div></div>`;
+  const callAttributes = state.activeCall ? `data-action="open-call"` : `data-friend-action="call" data-friend-id="friend-test"`;
+  drawer.innerHTML = `<div class="drawer-head"><span>Информация</span><button class="icon-button" data-action="info-close" aria-label="Закрыть">${icon("close")}</button></div>
+    <div class="drawer-scroll">
+      <section class="drawer-profile" aria-label="Профиль собеседника">
+        <div class="drawer-profile-banner"></div>
+        <div class="drawer-profile-body">
+          <span class="avatar green drawer-profile-avatar">T<span class="online"></span></span>
+          <div class="drawer-profile-copy"><h2>Test user 7K3IAI</h2><p><i></i>В сети</p></div>
+          <div class="drawer-profile-actions">
+            <button type="button" ${callAttributes}>${icon("phone")}<span>${state.activeCall ? "В звонок" : "Позвонить"}</span></button>
+            <button type="button" data-action="info-close">${icon("chat")}<span>К чату</span></button>
+          </div>
+        </div>
+      </section>
+      <section class="drawer-content-card">
+        <div class="drawer-tabs" role="tablist" aria-label="Материалы беседы"><button class="${state.infoTab === "media" ? "active" : ""}" data-info-tab="media" role="tab" aria-selected="${state.infoTab === "media"}">${icon("image")}<span>Медиа</span></button><button class="${state.infoTab === "records" ? "active" : ""}" data-info-tab="records" role="tab" aria-selected="${state.infoTab === "records"}">${icon("play")}<span>Записи</span></button><button class="${state.infoTab === "files" ? "active" : ""}" data-info-tab="files" role="tab" aria-selected="${state.infoTab === "files"}">${icon("file")}<span>Файлы</span></button></div>
+        <div class="drawer-empty"><div><span class="drawer-empty-icon">${icon(iconName)}</span><strong>Пока пусто</strong><p>В разделе «${label}» пока ничего нет.</p></div></div>
+      </section>
+    </div>`;
 }
 
 function renderMobileNotificationPrompt() {
