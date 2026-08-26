@@ -407,7 +407,7 @@ function renderCallStage() {
     ${!focus ? `<div class="call-participants">
         <article class="call-participant speaking"><span class="call-participant-avatar green">T</span><span class="call-participant-name"><i></i>Test user 7K3IAI</span></article>
         <article class="call-participant"><span class="call-participant-avatar">A</span><span class="call-participant-name">ArCode</span>${state.callMicMuted ? `<span class="participant-muted">${icon("mic")}</span>` : ""}</article>
-      </div>` : `<div class="call-participants single"><div class="call-focus-participant"><span class="call-focus-avatar">T</span></div></div>`}
+      </div>` : `<div class="call-participants single"><span class="call-focus-avatar">T</span></div>`}
     <div class="call-controls" role="toolbar" aria-label="Управление звонком">
       ${renderCallControl("mic", "mic", state.callMicMuted ? "Включить микрофон" : "Выключить микрофон", false, true)}
       ${renderCallControl("sound", "volume", state.callSoundMuted ? "Включить звук" : "Выключить звук", false, true)}
