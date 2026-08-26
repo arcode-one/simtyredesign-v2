@@ -35,6 +35,8 @@ const state = {
   memberActionMenu: false,
   permissionAddMenu: false,
   customPermissionRole: false,
+  serverPrivacy: "private",
+  savedServerPrivacy: "private",
   mobileSettingsView: false,
   selectedMessage: null,
   replyingTo: null,
@@ -670,7 +672,7 @@ function renderRoleManager() {
 }
 
 function renderServerSettingsView() {
-  if (state.serverSettingsTab === "privacy") return `<h1>Приватность сервера</h1><div class="settings-card"><h2>Настройки доступа</h2><div class="privacy-options"><button class="choice selected" data-choice>${icon("lock")}<span><strong>Приватный</strong><small>Доступ только по приглашению</small></span></button><button class="choice" data-choice>${icon("user-check")}<span><strong>По заявке</strong><small>Вход по одобрению заявки</small></span></button><button class="choice" data-choice>${icon("globe")}<span><strong>Публичный</strong><small>Любой может присоединиться</small></span></button></div><div class="settings-actions"><button class="secondary">Сбросить</button><button class="primary">Сохранить изменения</button></div></div>`;
+  if (state.serverSettingsTab === "privacy") return `<h1>Приватность сервера</h1><div class="settings-card"><h2>Настройки доступа</h2><div class="privacy-options"><button class="choice ${state.serverPrivacy === "private" ? "selected" : ""}" data-privacy="private">${icon("lock")}<span><strong>Приватный</strong><small>Доступ только по приглашению</small></span></button><button class="choice ${state.serverPrivacy === "request" ? "selected" : ""}" data-privacy="request">${icon("user-check")}<span><strong>По заявке</strong><small>Вход по одобрению заявки</small></span></button><button class="choice ${state.serverPrivacy === "public" ? "selected" : ""}" data-privacy="public">${icon("globe")}<span><strong>Публичный</strong><small>Любой может присоединиться</small></span></button></div><div class="settings-actions"><button class="secondary" data-action="reset-server-privacy">Сбросить</button><button class="primary" data-action="save-server-privacy">Сохранить изменения</button></div></div>`;
   if (state.serverSettingsTab === "roles") return renderRoleManager();
   if (state.serverSettingsTab === "members") return `<div class="member-heading"><div><h1>Участники</h1><p class="hint">1 участник</p></div><button class="icon-button refresh-button" data-action="refresh-members" aria-label="Обновить участников">${icon("refresh")}</button></div><div class="member-list"><div class="member-entry"><span class="avatar">A</span><span class="row-copy"><strong>ArCode</strong><small>@ArCode</small></span><button class="member-actions-button" data-action="member-actions" aria-label="Действия с участником" aria-expanded="${state.memberActionMenu}">${icon("more")}</button>${state.memberActionMenu ? `<div class="member-actions-menu" role="menu"><button data-confirm="kick-member">${icon("user-minus")}<span>Исключить</span></button><button data-confirm="ban-member">${icon("ban")}<span>Заблокировать</span></button></div>` : ""}</div></div>`;
   if (state.serverSettingsTab === "invites") return `<div class="page-title"><h1>Приглашения</h1><p>Активные ссылки-приглашения сервера.</p></div><button class="primary" data-modal="invite">Создать</button><div class="empty-state"><div class="empty-state-inner"><div class="empty-symbol">${icon("link")}</div><h2>Нет приглашений</h2><p>Создайте первое приглашение, чтобы пригласить друзей на этот сервер.</p></div></div>`;
@@ -776,7 +778,7 @@ function renderModal() {
   } else if (state.modal === "create-server") {
     root.innerHTML = modalShell("Создать сервер", "Выберите тип доступа и название.", `<form id="createServerForm"><div class="modal-body"><span class="eyebrow">Тип доступа</span><div class="choice-grid"><button class="choice selected" type="button" data-choice>${icon("lock")}<span><strong>Приватный</strong><small>Доступ только по приглашению</small></span></button><button class="choice" type="button" data-choice>${icon("user-check")}<span><strong>По заявке</strong><small>Виден всем, вход по одобрению заявки</small></span></button><button class="choice" type="button" data-choice>${icon("globe")}<span><strong>Публичный</strong><small>Любой может присоединиться</small></span></button></div><div class="field"><label>Название</label><input class="input" id="serverName" placeholder="Сообщество ArCode" required /></div></div><footer class="modal-foot"><button class="secondary" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать</button></footer></form>`);
   } else if (state.modal === "invite") {
-    root.innerHTML = modalShell("Пригласить друзей", "Приглашение на сервер «Simty Upgrade».", `<div class="modal-body"><div class="invite-search">${icon("search")}<input class="input" placeholder="Поиск среди друзей" /></div><div class="invite-empty">У вас пока нет друзей</div><div class="field"><label>Или поделитесь ссылкой</label><div class="invite-link"><input class="input" value="Ссылка создастся при копировании" readonly /><button class="primary" data-toast="Ссылка приглашения скопирована">${icon("copy")}Копировать</button></div></div></div>`);
+    root.innerHTML = modalShell("Пригласить друзей", "Приглашение на сервер «Simty Upgrade».", `<div class="modal-body"><div class="invite-search">${icon("search")}<input class="input" placeholder="Поиск среди друзей" /></div><div class="invite-empty">У вас пока нет друзей</div><div class="field"><label>Или поделитесь ссылкой</label><div class="invite-link"><input class="input" value="Ссылка создастся при копировании" readonly /><button class="primary" data-action="copy-invite">${icon("copy")}Копировать</button></div></div></div>`);
   } else if (state.modal === "create-channel") {
     root.innerHTML = modalShell("Создать канал", "Добавьте текстовый или голосовой канал.", `<form id="createChannelForm"><div class="modal-body"><span class="eyebrow">Тип</span><div class="type-switch"><button class="active" type="button" data-type-button>${icon("hash")}Текстовый</button><button type="button" data-type-button>${icon("volume")}Голосовой</button></div><div class="field"><label>Название</label><input class="input" required placeholder="Новый канал" /></div></div><footer class="modal-foot"><button class="secondary" type="button" data-modal-close>Отмена</button><button class="primary" type="submit">Создать</button></footer></form>`);
   } else if (state.modal === "create-category") {
@@ -819,6 +821,18 @@ function closeModal() {
     state.mobileSettingsView = false;
   }
   renderModal();
+}
+
+function renderModalPreservingScroll() {
+  const selector = ".settings-view, .permission-detail > .permission-matrix, .role-pane, .subject-list, .role-list";
+  const positions = $$(selector, $("#modalRoot")).map((node) => ({ top: node.scrollTop, left: node.scrollLeft }));
+  renderModal();
+  $$(selector, $("#modalRoot")).forEach((node, index) => {
+    const position = positions[index];
+    if (!position) return;
+    node.scrollTop = position.top;
+    node.scrollLeft = position.left;
+  });
 }
 
 document.addEventListener("click", (event) => {
@@ -1066,11 +1080,19 @@ document.addEventListener("click", (event) => {
   }
   if (action === "reset-channel-permissions") {
     Object.keys(state.permissionStates).filter((key) => key.startsWith("channel:")).forEach((key) => delete state.permissionStates[key]);
-    renderModal();
+    renderModalPreservingScroll();
     return;
   }
   if (action === "save-channel-permissions") {
     showMessage({ type: "success", title: "Разрешения сохранены", text: "Настройки канала обновлены." });
+    return;
+  }
+  if (action === "copy-invite") {
+    const invite = "https://simty.local/invite/simty-upgrade";
+    navigator.clipboard?.writeText(invite).catch(() => {});
+    const input = event.target.closest(".invite-link")?.querySelector("input");
+    if (input) input.value = invite;
+    showMessage({ type: "success", title: "Ссылка скопирована", text: "Приглашение готово к отправке." });
     return;
   }
   if (action === "open-call") {
@@ -1222,13 +1244,24 @@ document.addEventListener("click", (event) => {
   if (action === "save-role") {
     const input = $("#roleNameInput");
     if (input) state.roleNames[state.selectedRole] = input.value.trim() || state.roleNames[state.selectedRole];
+    renderModalPreservingScroll();
+    showMessage({ type: "success", title: "Роль сохранена", text: "Название и права роли обновлены." });
+    return;
+  }
+  if (action === "reset-server-privacy") {
+    state.serverPrivacy = state.savedServerPrivacy;
     renderModal();
+    return;
+  }
+  if (action === "save-server-privacy") {
+    state.savedServerPrivacy = state.serverPrivacy;
+    showMessage({ type: "success", title: "Приватность сохранена", text: "Настройки доступа к серверу обновлены." });
     return;
   }
   if (action === "reset-role-editor") {
     if (state.roleTab === "permissions") {
       Object.keys(state.permissionStates).filter((key) => key.startsWith(`role:${state.selectedRole}:`)).forEach((key) => delete state.permissionStates[key]);
-      renderModal();
+      renderModalPreservingScroll();
     } else if (state.roleTab === "general") {
       const input = $("#roleNameInput");
       if (input) input.value = state.roleNames[state.selectedRole];
@@ -1368,15 +1401,34 @@ document.addEventListener("click", (event) => {
   const permissionSubject = event.target.closest("[data-permission-subject]");
   if (permissionSubject) { state.selectedPermissionSubject = permissionSubject.dataset.permissionSubject; state.permissionAddMenu = false; renderModal(); return; }
 
+  const privacyChoice = event.target.closest("[data-privacy]");
+  if (privacyChoice) { state.serverPrivacy = privacyChoice.dataset.privacy; renderModal(); return; }
+
   const permissionButton = event.target.closest("[data-permission-key]");
   if (permissionButton) {
     state.permissionStates[permissionButton.dataset.permissionKey] = permissionButton.dataset.permissionValue;
-    renderModal();
+    renderModalPreservingScroll();
     return;
   }
 
   const choice = event.target.closest("[data-choice]");
   if (choice) { $$('[data-choice]').forEach((item) => item.classList.toggle("selected", item === choice)); return; }
+
+  const sticker = event.target.closest("[data-sticker]");
+  if (sticker) {
+    const input = $("#messageInput");
+    const value = sticker.dataset.sticker || "";
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    input.value = `${input.value.slice(0, start)}${value}${input.value.slice(end)}`;
+    input.setSelectionRange(start + value.length, start + value.length);
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 125)}px`;
+    $("#stickerPopover").classList.remove("open");
+    updateComposerActionButton();
+    input.focus();
+    return;
+  }
 
   const typeButton = event.target.closest("[data-type-button]");
   if (typeButton) { $$('[data-type-button]').forEach((item) => item.classList.toggle("active", item === typeButton)); return; }

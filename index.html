@@ -2,7 +2,7 @@
 <html lang="ru">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 		<meta name="theme-color" content="#1e1f22" />
 		<title>СИМТИ — редизайн</title>
 		<link rel="stylesheet" href="styles.css" />
@@ -41,7 +41,7 @@
 				<div class="sidebar-body" id="sidebarBody"></div>
 				<div class="active-call-dock-host" id="activeCallDock"></div>
 				<footer class="user-panel">
-					<button class="user-identity" aria-label="Профиль пользователя">
+					<button class="user-identity" data-modal="user-settings" aria-label="Открыть настройки профиля">
 						<span class="avatar avatar-main">A</span>
 						<span class="user-name"><strong>ArCode</strong></span>
 					</button>
@@ -110,8 +110,8 @@
 						</button>
 					</div>
 					<div class="sticker-popover" id="stickerPopover">
-						<button type="button">👋</button><button type="button">💜</button
-						><button type="button">🔥</button><button type="button">✨</button>
+						<button type="button" data-sticker="👋" aria-label="Добавить стикер: привет">👋</button><button type="button" data-sticker="💜" aria-label="Добавить стикер: сердце">💜</button
+						><button type="button" data-sticker="🔥" aria-label="Добавить стикер: огонь">🔥</button><button type="button" data-sticker="✨" aria-label="Добавить стикер: искры">✨</button>
 					</div>
 				</form>
 			</main>
